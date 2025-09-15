@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Plus, LoaderCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, forwardRef } from 'react';
 
 // Use a more specific name to avoid conflict with the component name
 type NodeData = MindMapNodeType & { children?: NodeData[] };
@@ -119,20 +119,23 @@ function MindMapNode({ node, level, isLast, onExpandNode, isExpanding }: MindMap
   );
 }
 
-export function MindMapDisplay({ mindMap, onExpandNode, isExpanding }: MindMapDisplayProps) {
+export const MindMapDisplay = forwardRef<HTMLDivElement, MindMapDisplayProps>(({ mindMap, onExpandNode, isExpanding }, ref) => {
   if (!mindMap) {
     return <p className="text-muted-foreground">No mind map generated.</p>;
   }
 
   return (
-    <div className="space-y-2">
-      <MindMapNode 
-        node={mindMap}
-        level={0}
-        isLast={true}
-        onExpandNode={onExpandNode}
-        isExpanding={isExpanding}
-      />
+    <div ref={ref}>
+        <div className="space-y-2 inline-block">
+            <MindMapNode 
+                node={mindMap}
+                level={0}
+                isLast={true}
+                onExpandNode={onExpandNode}
+                isExpanding={isExpanding}
+            />
+        </div>
     </div>
   );
-}
+});
+MindMapDisplay.displayName = 'MindMapDisplay';
