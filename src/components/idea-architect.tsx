@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useEffect, useRef, useState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Lightbulb, LoaderCircle, Sparkles } from 'lucide-react';
 import { generateIdea, type GeneratedIdea } from '@/app/actions';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ function SubmitButton() {
 }
 
 export function IdeaArchitect() {
-  const [state, formAction] = useFormState(generateIdea, { data: null, error: null });
+  const [state, formAction] = useActionState(generateIdea, { data: null, error: null });
   const [result, setResult] = useState<GeneratedIdea | null>(null);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
