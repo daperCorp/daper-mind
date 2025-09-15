@@ -105,18 +105,20 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
         const converter = new showdown.Converter();
         const html = converter.makeHtml(markdown);
 
-        // Create a temporary element to render the HTML for capturing
         const tempContainer = document.createElement('div');
         tempContainer.style.position = 'absolute';
         tempContainer.style.left = '-9999px';
-        tempContainer.style.width = '700px'; // A4-like width
-        tempContainer.style.fontFamily = `'Malgun Gothic', 'sans-serif'`; // Ensure Korean font is used
+        tempContainer.style.width = '700px'; 
+        tempContainer.style.padding = '20px'; // Add padding
+        tempContainer.style.boxSizing = 'border-box';
+        tempContainer.style.fontFamily = `'Malgun Gothic', 'sans-serif'`;
         tempContainer.innerHTML = `
             <style>
-                body { font-family: 'Malgun Gothic', sans-serif; line-height: 1.6; background-color: white; color: black; }
-                ul { list-style-type: disc; padding-left: 20px; }
-                li { margin-bottom: 5px; }
-                h1, h2 { padding-bottom: 10px; border-bottom: 1px solid #eee; }
+                body { font-family: 'Malgun Gothic', 'Helvetica', 'Arial', sans-serif; line-height: 1.6; background-color: white; color: black; }
+                ul { list-style-type: disc; padding-left: 20px; margin: 0; }
+                li { margin-bottom: 8px; }
+                h1 { font-size: 24px; font-weight: bold; margin-bottom: 16px; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+                h2 { font-size: 20px; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
             </style>
             <h1>${idea.title}</h1>
             <h2>Mind Map</h2>
@@ -125,8 +127,8 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
         document.body.appendChild(tempContainer);
 
         const canvas = await html2canvas(tempContainer, {
-            scale: 2, // Increase resolution
-            backgroundColor: '#ffffff', // Ensure background is white
+            scale: 2, 
+            backgroundColor: '#ffffff',
             useCORS: true,
         });
         
@@ -141,23 +143,25 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
 
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
+        const margin = 20;
+        const contentWidth = pdfWidth - (margin * 2);
+        
         const canvasWidth = canvas.width;
         const canvasHeight = canvas.height;
         const ratio = canvasWidth / canvasHeight;
-        const imgWidth = pdfWidth;
-        const imgHeight = pdfWidth / ratio;
+        const contentHeight = contentWidth / ratio;
         
-        let heightLeft = imgHeight;
+        let heightLeft = contentHeight;
         let position = 0;
 
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
+        pdf.addImage(imgData, 'PNG', margin, position + margin, contentWidth, contentHeight);
+        heightLeft -= (pdfHeight - (margin * 2));
 
         while (heightLeft > 0) {
-            position = heightLeft - imgHeight;
+            position = heightLeft - contentHeight;
             pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pdfHeight;
+            pdf.addImage(imgData, 'PNG', margin, position + margin, contentWidth, contentHeight);
+            heightLeft -= (pdfHeight - (margin * 2));
         }
 
         pdf.save(`${idea.title.replace(/\s+/g, '_')}_MindMap.pdf`);
