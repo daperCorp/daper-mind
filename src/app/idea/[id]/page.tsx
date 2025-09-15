@@ -31,7 +31,7 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
       setLoading(false);
     }
     fetchIdea();
-  }, [params.id]);
+  }, [params]);
 
   const handleShare = async () => {
     const shareData = {
@@ -54,11 +54,9 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
         await navigator.share(shareData);
       } catch (error) {
         console.error('Error sharing:', error);
-        // If sharing fails, fall back to copying the link
         copyToClipboard();
       }
     } else {
-      // Fallback for browsers that do not support the Web Share API
       copyToClipboard();
     }
   };
