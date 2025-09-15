@@ -1,3 +1,7 @@
+
+'use client';
+
+import { useState } from 'react';
 import { Archive, BrainCircuit, Plus, Star } from 'lucide-react';
 import {
   SidebarProvider,
@@ -13,6 +17,8 @@ import {
 import { IdeaArchitect } from '@/components/idea-architect';
 
 export default function Home() {
+  const [activeMenu, setActiveMenu] = useState('new');
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -25,19 +31,19 @@ export default function Home() {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="New Idea">
+              <SidebarMenuButton tooltip="New Idea" isActive={activeMenu === 'new'} onClick={() => setActiveMenu('new')}>
                 <Plus />
                 <span>New Idea</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Archive" isActive>
+              <SidebarMenuButton tooltip="Archive" isActive={activeMenu === 'archive'} onClick={() => setActiveMenu('archive')}>
                 <Archive />
                 <span>Archive</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Favorites">
+              <SidebarMenuButton tooltip="Favorites" isActive={activeMenu === 'favorites'} onClick={() => setActiveMenu('favorites')}>
                 <Star />
                 <span>Favorites</span>
               </SidebarMenuButton>
@@ -53,7 +59,17 @@ export default function Home() {
           </div>
         </header>
         <main className="flex-1 overflow-auto p-4 md:p-6">
-          <IdeaArchitect />
+          {activeMenu === 'new' && <IdeaArchitect />}
+          {activeMenu === 'archive' && (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-muted-foreground">Archive is empty.</p>
+            </div>
+          )}
+          {activeMenu === 'favorites' && (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-muted-foreground">You have no favorites yet.</p>
+            </div>
+          )}
         </main>
       </SidebarInset>
     </SidebarProvider>
