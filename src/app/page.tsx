@@ -31,9 +31,9 @@ export default function Home() {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="이동이 안되는데" isActive>
+              <SidebarMenuButton tooltip="Archive" isActive>
                 <Archive />
-                <span>이동이 안되는데</span>
+                <span>Archive</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
