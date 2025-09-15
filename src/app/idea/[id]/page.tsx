@@ -16,12 +16,11 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
   const [idea, setIdea] = useState<GeneratedIdea | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const id = params.id;
 
   useEffect(() => {
-    if (!id) return;
+    if (!params.id) return;
     async function fetchIdea() {
-      const { data, error } = await getIdeaById(id);
+      const { data, error } = await getIdeaById(params.id);
       if (error || !data) {
         notFound();
       } else {
@@ -30,7 +29,7 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
       setLoading(false);
     }
     fetchIdea();
-  }, [id]);
+  }, [params.id]);
 
   const handleShare = async () => {
     const shareData = {
