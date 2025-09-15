@@ -7,7 +7,7 @@ import { getIdeaById, GeneratedIdea } from '@/app/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { OutlineDisplay } from '@/components/outline-display';
 import { Button } from '@/components/ui/button';
-import { Download, Share2, LoaderCircle } from 'lucide-react';
+import { Download, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -16,10 +16,12 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
   const [idea, setIdea] = useState<GeneratedIdea | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const id = params.id;
 
   useEffect(() => {
+    if (!id) return;
     async function fetchIdea() {
-      const { data, error } = await getIdeaById(params.id);
+      const { data, error } = await getIdeaById(id);
       if (error || !data) {
         notFound();
       } else {
@@ -28,7 +30,7 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
       setLoading(false);
     }
     fetchIdea();
-  }, [params.id]);
+  }, [id]);
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -125,4 +127,3 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
