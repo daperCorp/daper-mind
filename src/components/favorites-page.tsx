@@ -48,8 +48,12 @@ export function FavoritesPage() {
   const t = (key: keyof typeof translations) => translations[key][language];
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.uid) {
+        setLoading(false);
+        return;
+    };
     async function fetchIdeas() {
+      setLoading(true);
       const { data, error } = await getFavoritedIdeas(user.uid);
       if (data) {
         setIdeas(data);
@@ -69,6 +73,7 @@ export function FavoritesPage() {
   if (loading) {
     return (
       <div className="space-y-4">
+        <h1 className="text-2xl font-bold">{t('favoriteIdeas')}</h1>
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
@@ -80,29 +85,29 @@ export function FavoritesPage() {
     return <p className="text-destructive">{error}</p>;
   }
 
-  if (ideas.length === 0) {
-    return <p className="text-muted-foreground">{t('favoritesEmpty')}</p>;
-  }
-
   return (
     <div className="space-y-4">
         <h1 className="text-2xl font-bold">{t('favoriteIdeas')}</h1>
-        {ideas.map((idea) => (
-            <Link href={`/idea/${idea.id}`} key={idea.id} className="block">
-                <Card className="relative hover:shadow-md transition-shadow">
-                    <FavoriteButton idea={idea} onUnfavorite={handleUnfavorite} />
-                    <CardHeader>
-                        <CardTitle>{idea.title}</CardTitle>
-                        <CardDescription>
-                            {idea.createdAt ? new Date(idea.createdAt).toLocaleDateString() : ''}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground line-clamp-3">{idea.summary}</p>
-                    </CardContent>
-                </Card>
-            </Link>
-        ))}
+        {ideas.length === 0 ? (
+             <p className="text-muted-foreground">{t('favoritesEmpty')}</p>
+        ) : (
+            ideas.map((idea) => (
+                <Link href={`/idea/${idea.id}`} key={idea.id} className="block">
+                    <Card className="relative hover:shadow-md transition-shadow">
+                        <FavoriteButton idea={idea} onUnfavorite={handleUnfavorite} />
+                        <CardHeader>
+                            <CardTitle>{idea.title}</CardTitle>
+                            <CardDescription>
+                                {idea.createdAt ? new Date(idea.createdAt).toLocaleDateString() : ''}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-muted-foreground line-clamp-3">{idea.summary}</p>
+                        </CardContent>
+                    </Card>
+                </Link>
+            ))
+        )}
     </div>
   );
 }
