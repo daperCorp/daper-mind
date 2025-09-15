@@ -33,26 +33,33 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
   }, [id]);
 
   const handleShare = async () => {
+    const shareData = {
+      title: idea?.title,
+      text: idea?.summary,
+      url: window.location.href,
+    };
+    
+    const copyToClipboard = async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            toast({ title: 'Success', description: 'Link copied to clipboard!' });
+        } catch (err) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not copy link.' });
+        }
+    };
+
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: idea?.title,
-          text: idea?.summary,
-          url: window.location.href,
-        });
+        await navigator.share(shareData);
         toast({ title: 'Success', description: 'Idea shared successfully!' });
       } catch (error) {
         console.error('Error sharing:', error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to share idea.' });
+        // If sharing fails, fall back to copying the link
+        copyToClipboard();
       }
     } else {
       // Fallback for browsers that do not support the Web Share API
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        toast({ title: 'Success', description: 'Link copied to clipboard!' });
-      } catch (err) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not copy link.' });
-      }
+      copyToClipboard();
     }
   };
 
