@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { OutlineDisplay } from './outline-display';
+import { MindMapDisplay } from './mindmap-display';
 import { useAuth } from '@/context/auth-context';
 import { useLanguage } from '@/context/language-context';
 import { translations } from '@/lib/translations';
@@ -89,6 +90,15 @@ export function IdeaArchitect() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">{result.summary}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('mindMap')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MindMapDisplay mindMap={result.mindMap} />
             </CardContent>
           </Card>
 

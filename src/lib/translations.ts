@@ -22,6 +22,7 @@ export const translations: Translations = {
   generateIdea: { English: 'Generate Idea', Korean: '아이디어 생성' },
   ideaOutline: { English: 'Idea Outline', Korean: '아이디어 개요' },
   summary: { English: 'Summary', Korean: '요약' },
+  mindMap: { English: 'Mind Map', Korean: '마인드맵' },
   
   // Archive Page
   ideaArchive: { English: 'Idea Archive', Korean: '아이디어 보관함' },

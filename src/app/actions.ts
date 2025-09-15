@@ -4,6 +4,7 @@
 import { generateIdeaTitle } from '@/ai/flows/generate-idea-title';
 import { generateIdeaSummary } from '@/ai/flows/generate-idea-summary';
 import { generateIdeaOutline } from '@/ai/flows/generate-idea-outline';
+import { generateIdeaMindMap, type MindMapNode } from '@/ai/flows/generate-idea-mindmap';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, getDocs, orderBy, query, doc, getDoc, updateDoc, where, setDoc } from 'firebase/firestore';
@@ -21,6 +22,7 @@ export type GeneratedIdea = {
   title: string;
   summary: string;
   outline: string;
+  mindMap: MindMapNode;
   favorited?: boolean;
   createdAt?: Date;
   userId?: string;
@@ -44,16 +46,18 @@ export async function generateIdea(prevState: any, formData: FormData): Promise<
   const { idea: ideaDescription, userId, language } = validatedFields.data;
 
   try {
-    const [titleResult, summaryResult, outlineResult] = await Promise.all([
+    const [titleResult, summaryResult, outlineResult, mindMapResult] = await Promise.all([
       generateIdeaTitle({ ideaDescription, language }),
       generateIdeaSummary({ idea: ideaDescription, language }),
       generateIdeaOutline({ idea: ideaDescription, language }),
+      generateIdeaMindMap({ idea: ideaDescription, language }),
     ]);
 
     const newIdea: Omit<GeneratedIdea, 'id' | 'createdAt'> = {
         title: titleResult.ideaTitle,
         summary: summaryResult.summary,
         outline: outlineResult.outline,
+        mindMap: mindMapResult.mindMap,
         favorited: false,
         userId: userId,
     };
@@ -95,6 +99,7 @@ export async function getArchivedIdeas(userId: string): Promise<{ data: Generate
                 title: data.title,
                 summary: data.summary,
                 outline: data.outline,
+                mindMap: data.mindMap,
                 favorited: data.favorited,
                 createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
             };
@@ -119,6 +124,7 @@ export async function getFavoritedIdeas(userId: string): Promise<{ data: Generat
                 title: data.title,
                 summary: data.summary,
                 outline: data.outline,
+                mindMap: data.mindMap,
                 favorited: data.favorited,
                 createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
             };
@@ -142,6 +148,7 @@ export async function getIdeaById(id: string): Promise<{ data: GeneratedIdea | n
                 title: data.title,
                 summary: data.summary,
                 outline: data.outline,
+                mindMap: data.mindMap,
                 favorited: data.favorited,
                 createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
                 userId: data.userId,

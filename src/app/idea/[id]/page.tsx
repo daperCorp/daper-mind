@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { getIdeaById, GeneratedIdea } from '@/app/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { OutlineDisplay } from '@/components/outline-display';
+import { MindMapDisplay } from '@/components/mindmap-display';
 import { Button } from '@/components/ui/button';
 import { Download, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -95,6 +96,7 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
         </div>
         <Skeleton className="h-36 w-full" />
         <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
@@ -121,6 +123,15 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">{idea.summary}</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('mindMap')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MindMapDisplay mindMap={idea.mindMap} />
         </CardContent>
       </Card>
 
