@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, use } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import { getIdeaById, GeneratedIdea, expandMindMapNode, regenerateMindMap } from '@/app/actions';
 import { MindMapDisplay } from '@/components/mindmap-display';
@@ -11,7 +11,8 @@ import { ArrowLeft, BrainCircuit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { MindMapNode } from '@/ai/flows/generate-idea-mindmap';
 
-export default function MindMapPage({ params }: { params: { id: string } }) {
+export default function MindMapPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = use(paramsPromise);
   const [idea, setIdea] = useState<GeneratedIdea | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
@@ -32,6 +33,7 @@ export default function MindMapPage({ params }: { params: { id: string } }) {
     if (params.id) {
       fetchIdea();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
   const handleExpandNode = async (parentNodeTitle: string, existingChildren: { title: string }[]) => {
@@ -105,7 +107,7 @@ export default function MindMapPage({ params }: { params: { id: string } }) {
         </Button>
       </header>
       <main className="flex-1 overflow-auto p-4 md:p-8">
-        <MindMapDisplay 
+        <MindMapDisplay
           mindMap={idea.mindMap}
           onExpandNode={handleExpandNode}
           isExpanding={isPending}

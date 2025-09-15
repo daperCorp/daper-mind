@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getIdeaById, GeneratedIdea } from '@/app/actions';
@@ -14,7 +14,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/context/language-context';
 import { translations } from '@/lib/translations';
 
-export default function IdeaDetailPage({ params }: { params: { id: string } }) {
+export default function IdeaDetailPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = use(paramsPromise);
   const [idea, setIdea] = useState<GeneratedIdea | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -44,7 +45,7 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
       text: idea?.summary,
       url: window.location.href,
     };
-    
+
     const copyToClipboard = async () => {
         try {
             await navigator.clipboard.writeText(window.location.href);
@@ -81,7 +82,7 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
     URL.revokeObjectURL(url);
     toast({ title: 'Success', description: t('ideaExported') });
   };
-  
+
   if (loading || !idea) {
     return (
       <div className="mx-auto max-w-4xl space-y-8 p-4 md:p-6">
@@ -117,7 +118,7 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
             <Button onClick={handleExport}><Download className="mr-2" /> {t('export')}</Button>
         </div>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>{t('summary')}</CardTitle>
