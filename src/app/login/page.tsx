@@ -1,7 +1,6 @@
 
 'use client';
 
-import { Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-context';
@@ -18,7 +17,7 @@ function GoogleIcon() {
 }
 
 export default function LoginPage() {
-  const { signInWithGoogle, signInWithGitHub, user, loading } = useAuth();
+  const { signInWithGoogle, user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -36,7 +35,6 @@ export default function LoginPage() {
                     <Skeleton className="h-4 w-64 mt-2" />
                 </CardHeader>
                 <CardContent className="grid gap-4">
-                    <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-10 w-full" />
                 </CardContent>
             </Card>
@@ -59,10 +57,6 @@ export default function LoginPage() {
           <Button variant="outline" onClick={signInWithGoogle}>
             <GoogleIcon />
             <span className='ml-2'>Sign in with Google</span>
-          </Button>
-          <Button variant="outline" onClick={signInWithGitHub}>
-            <Github />
-            <span className='ml-2'>Sign in with GitHub</span>
           </Button>
         </CardContent>
       </Card>

@@ -4,8 +4,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { 
   onAuthStateChanged, 
-  GoogleAuthProvider, 
-  GithubAuthProvider, 
+  GoogleAuthProvider,
   signInWithPopup, 
   signOut,
   type User
@@ -18,7 +17,6 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
-  signInWithGitHub: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -37,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const handleSignIn = async (provider: GoogleAuthProvider | GithubAuthProvider) => {
+  const handleSignIn = async (provider: GoogleAuthProvider) => {
     try {
       setLoading(true);
       const result = await signInWithPopup(auth, provider);
@@ -58,7 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = () => handleSignIn(new GoogleAuthProvider());
-  const signInWithGitHub = () => handleSignIn(new GithubAuthProvider());
 
   const logout = async () => {
     try {
@@ -73,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const value = { user, loading, signInWithGoogle, signInWithGitHub, logout };
+  const value = { user, loading, signInWithGoogle, logout };
 
   return (
     <AuthContext.Provider value={value}>
