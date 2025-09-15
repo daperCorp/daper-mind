@@ -16,10 +16,11 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
   const [idea, setIdea] = useState<GeneratedIdea | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { id } = params;
 
   useEffect(() => {
+    const id = params.id;
     if (!id) return;
+
     async function fetchIdea() {
       const { data, error } = await getIdeaById(id);
       if (error || !data) {
@@ -30,7 +31,7 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
       setLoading(false);
     }
     fetchIdea();
-  }, [id]);
+  }, [params.id]);
 
   const handleShare = async () => {
     const shareData = {
