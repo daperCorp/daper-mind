@@ -80,21 +80,23 @@ export default function Home() {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-sm md:px-6">
-          <SidebarTrigger className="md:hidden" />
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold md:text-xl">{t('aiIdeaArchitect')}</h1>
-          </div>
-          <div className='flex items-center gap-4'>
-            <LanguageSelector />
-            <UserProfile />
-          </div>
-        </header>
-        <main className="flex-1 overflow-auto p-4 md:p-6">
-          {activeMenu === 'new' && <IdeaArchitect />}
-          {activeMenu === 'archive' && <ArchivePage />}
-          {activeMenu === 'favorites' && <FavoritesPage />}
-        </main>
+        <div className='flex flex-col h-screen'>
+            <header className="flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-sm md:px-6">
+                <SidebarTrigger className="md:hidden" />
+                <div className="flex-1">
+                    <h1 className="text-lg font-semibold md:text-xl">{t('aiIdeaArchitect')}</h1>
+                </div>
+                <div className='flex items-center gap-4'>
+                    <LanguageSelector />
+                    <UserProfile />
+                </div>
+            </header>
+            <main className="flex-1 overflow-auto p-4 md:p-6">
+                {activeMenu === 'new' && <IdeaArchitect />}
+                {activeMenu === 'archive' && <ArchivePage />}
+                {activeMenu === 'favorites' && <FavoritesPage />}
+            </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

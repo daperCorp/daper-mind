@@ -1,13 +1,13 @@
-
 'use server';
 
 import { generateIdeaTitle } from '@/ai/flows/generate-idea-title';
 import { generateIdeaSummary } from '@/ai/flows/generate-idea-summary';
 import { generateIdeaOutline } from '@/ai/flows/generate-idea-outline';
 import { generateIdeaMindMap, type MindMapNode } from '@/ai/flows/generate-idea-mindmap';
+import { generateMindMapNode } from '@/ai/flows/generate-mindmap-node';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, getDocs, orderBy, query, doc, getDoc, updateDoc, where, setDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, doc, getDoc, updateDoc, where, setDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import type { User } from 'firebase/auth';
 
@@ -156,6 +156,7 @@ export async function getIdeaById(id: string): Promise<{ data: GeneratedIdea | n
                 favorited: data.favorited,
                 createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
                 userId: data.userId,
+                language: data.language || 'English',
             };
             return { data: idea, error: null };
         } else {
@@ -182,7 +183,7 @@ export async function toggleFavorite(id: string, isFavorited: boolean) {
     }
 }
 
-export async function regenerateMindMap(ideaId: string, ideaSummary: string, language: 'English' | 'Korean'): Promise<{ success: boolean, error: string | null }> {
+export async function regenerateMindMap(ideaId: string, ideaSummary: string, language: 'English' | 'Korean'): Promise<{ success: boolean, newMindMap: MindMapNode | null, error: string | null }> {
     try {
         if (!ideaId || !ideaSummary) {
             throw new Error('Idea ID and summary are required.');
@@ -196,12 +197,13 @@ export async function regenerateMindMap(ideaId: string, ideaSummary: string, lan
         });
 
         revalidatePath(`/idea/${ideaId}`);
+        revalidatePath(`/idea/${ideaId}/mindmap`);
         revalidatePath('/archive');
 
-        return { success: true, error: null };
+        return { success: true, newMindMap: mindMapResult.mindMap, error: null };
     } catch (error) {
         console.error('Error regenerating mind map:', error);
-        return { success: false, error: 'Failed to regenerate mind map. Please try again.' };
+        return { success: false, newMindMap: null, error: 'Failed to regenerate mind map. Please try again.' };
     }
 }
 
@@ -220,5 +222,62 @@ export async function upsertUser(user: User): Promise<{ error: string | null }> 
     } catch (error) {
         console.error("Error saving user to Firestore:", error);
         return { error: "Failed to save user data." };
+    }
+}
+
+export async function expandMindMapNode(
+    ideaId: string,
+    ideaContext: string,
+    parentNodeTitle: string,
+    existingChildrenTitles: string[],
+    language: 'English' | 'Korean'
+): Promise<{ success: boolean, newNodes?: { title: string }[], error?: string }> {
+    try {
+        const { newNodes } = await generateMindMapNode({
+            ideaContext,
+            parentNodeTitle,
+            existingChildrenTitles,
+            language,
+        });
+
+        if (newNodes && newNodes.length > 0) {
+            const ideaRef = doc(db, 'ideas', ideaId);
+            const ideaSnap = await getDoc(ideaRef);
+            if (!ideaSnap.exists()) {
+                throw new Error('Idea not found');
+            }
+
+            const ideaData = ideaSnap.data();
+            const mindMap = ideaData.mindMap as MindMapNode;
+
+            // Find the parent node and add the new children
+            const findAndAdd = (node: MindMapNode): boolean => {
+                if (node.title === parentNodeTitle) {
+                    if (!node.children) node.children = [];
+                    // @ts-ignore
+                    node.children.push(...newNodes);
+                    return true;
+                }
+                if (node.children) {
+                    // @ts-ignore
+                    for (const child of node.children) {
+                        if (findAndAdd(child)) return true;
+                    }
+                }
+                return false;
+            };
+
+            findAndAdd(mindMap);
+            
+            await updateDoc(ideaRef, { mindMap });
+
+            revalidatePath(`/idea/${ideaId}/mindmap`);
+        }
+
+        return { success: true, newNodes };
+
+    } catch (error) {
+        console.error('Error expanding mind map node:', error);
+        return { success: false, error: 'Failed to generate new nodes.' };
     }
 }

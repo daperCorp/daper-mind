@@ -8,6 +8,10 @@ type Translations = {
 };
 
 export const translations: Translations = {
+  // Common
+  success: { English: 'Success', Korean: '성공' },
+  error: { English: 'Error', Korean: '오류' },
+  
   // Sidebar
   newIdea: { English: 'New Idea', Korean: '새 아이디어' },
   archive: { English: 'Archive', Korean: '보관함' },
@@ -24,13 +28,14 @@ export const translations: Translations = {
   summary: { English: 'Summary', Korean: '요약' },
   mindMap: { English: 'Mind Map', Korean: '마인드맵' },
   
-  // Archive Page
+  // Archive & Favorites Page
   ideaArchive: { English: 'Idea Archive', Korean: '아이디어 보관함' },
   archiveEmpty: { English: 'Your archive is empty. Generate some ideas to get started!', Korean: '보관함이 비어있습니다. 아이디어를 생성하여 시작해보세요!' },
-
-  // Favorites Page
   favoriteIdeas: { English: 'Favorite Ideas', Korean: '즐겨찾는 아이디어' },
   favoritesEmpty: { English: 'You have no favorites yet. Star an idea in the archive to see it here!', Korean: '즐겨찾는 아이디어가 없습니다. 보관함에서 아이디어에 별표를 표시하여 여기에 추가하세요!' },
+  regenerateMindMap: { English: 'Regenerate Mind Map', Korean: '마인드맵 재생성' },
+  mindMapRegenerated: { English: 'Mind map has been regenerated.', Korean: '마인드맵이 재생성되었습니다.' },
+
 
   // Idea Detail Page
   createdOn: { English: 'Created on', Korean: '작성일' },

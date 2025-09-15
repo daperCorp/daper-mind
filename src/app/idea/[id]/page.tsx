@@ -2,13 +2,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getIdeaById, GeneratedIdea } from '@/app/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { OutlineDisplay } from '@/components/outline-display';
-import { MindMapDisplay } from '@/components/mindmap-display';
 import { Button } from '@/components/ui/button';
-import { Download, Share2 } from 'lucide-react';
+import { Download, Share2, LocateFixed } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/context/language-context';
@@ -20,6 +20,7 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = (key: keyof typeof translations) => translations[key][language];
+  const router = useRouter();
 
   useEffect(() => {
     const id = params.id;
@@ -83,7 +84,7 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
   
   if (loading || !idea) {
     return (
-      <div className="mx-auto max-w-4xl space-y-8">
+      <div className="mx-auto max-w-4xl space-y-8 p-4 md:p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
             <Skeleton className="h-9 w-64 mb-2" />
@@ -103,7 +104,7 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
 
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8">
+    <div className="mx-auto max-w-4xl space-y-8 p-4 md:p-6">
       <div className="flex items-center justify-between gap-4">
         <div>
             <h1 className="text-3xl font-bold text-primary">{idea.title}</h1>
@@ -127,11 +128,19 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{t('mindMap')}</CardTitle>
+           <Button asChild variant="outline">
+              <Link href={`/idea/${idea.id}/mindmap`}>
+                <LocateFixed className="mr-2 h-4 w-4" />
+                View Full Mind Map
+              </Link>
+            </Button>
         </CardHeader>
         <CardContent>
-          <MindMapDisplay mindMap={idea.mindMap} />
+           <p className="text-muted-foreground">
+            A brief preview of your mind map is available. Click the button above to view and interact with the full mind map.
+          </p>
         </CardContent>
       </Card>
 
