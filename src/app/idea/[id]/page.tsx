@@ -8,7 +8,7 @@ import { getIdeaById, GeneratedIdea } from '@/app/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { OutlineDisplay } from '@/components/outline-display';
 import { Button } from '@/components/ui/button';
-import { Download, Share2, LocateFixed, ArrowLeft } from 'lucide-react';
+import { Share2, LocateFixed, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/context/language-context';
@@ -40,47 +40,12 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
   }, [params]);
 
   const handleShare = async () => {
-    const shareData = {
-      title: idea?.title,
-      text: idea?.summary,
-      url: window.location.href,
-    };
-
-    const copyToClipboard = async () => {
-        try {
-            await navigator.clipboard.writeText(window.location.href);
-            toast({ title: 'Success', description: t('linkCopied') });
-        } catch (err) {
-            toast({ variant: 'destructive', title: 'Error', description: t('linkCopyError') });
-        }
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (error) {
-        console.error('Error sharing:', error);
-        copyToClipboard();
-      }
-    } else {
-      copyToClipboard();
+    try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast({ title: 'Success', description: t('linkCopied') });
+    } catch (err) {
+        toast({ variant: 'destructive', title: 'Error', description: t('linkCopyError') });
     }
-  };
-
-  const handleExport = () => {
-    if (!idea) return;
-
-    const content = `Title: ${idea.title}\n\nSummary:\n${idea.summary}\n\nOutline:\n${idea.outline}`;
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${idea.title.replace(/\s+/g, '_')}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast({ title: 'Success', description: t('ideaExported') });
   };
 
   if (loading || !idea) {
@@ -92,7 +57,6 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
             <Skeleton className="h-5 w-48" />
           </div>
           <div className="flex gap-2">
-            <Skeleton className="h-10 w-28" />
             <Skeleton className="h-10 w-28" />
           </div>
         </div>
@@ -121,8 +85,7 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
                 </div>
             </div>
             <div className="flex flex-shrink-0 gap-2">
-                <Button variant="outline" onClick={handleShare}><Share2 className="mr-2" /> {t('share')}</Button>
-                <Button onClick={handleExport}><Download className="mr-2" /> {t('export')}</Button>
+                <Button variant="outline" onClick={handleShare}><Share2 className="mr-2 h-4 w-4" /> {t('share')}</Button>
             </div>
         </div>
 
