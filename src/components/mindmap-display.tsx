@@ -40,13 +40,11 @@ const connectorColors = [
   'border-muted-foreground/20',
 ];
 
-const MAX_DEPTH = 4;
-
 function MindMapNode({ node, level, isLast, onExpandNode, isExpanding }: MindMapNodeProps) {
   const [expandingNode, setExpandingNode] = useState<string | null>(null);
   const hasChildren = node.children && node.children.length > 0;
   const cardColor = levelColors[level] || levelColors[levelColors.length - 1];
-  const canExpand = level < MAX_DEPTH -1 && onExpandNode; // Can only expand nodes up to the second to last level
+  const canExpand = !!onExpandNode;
 
   const handleExpandClick = (e: React.MouseEvent) => {
     e.stopPropagation();
