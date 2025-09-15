@@ -26,6 +26,7 @@ export type GeneratedIdea = {
   favorited?: boolean;
   createdAt?: Date;
   userId?: string;
+  language?: 'English' | 'Korean';
 };
 
 export async function generateIdea(prevState: any, formData: FormData): Promise<{ data: GeneratedIdea | null, error: string | null }> {
@@ -60,6 +61,7 @@ export async function generateIdea(prevState: any, formData: FormData): Promise<
         mindMap: mindMapResult.mindMap,
         favorited: false,
         userId: userId,
+        language: language,
     };
 
     const docRef = await addDoc(collection(db, "ideas"), {
@@ -102,6 +104,7 @@ export async function getArchivedIdeas(userId: string): Promise<{ data: Generate
                 mindMap: data.mindMap,
                 favorited: data.favorited,
                 createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
+                language: data.language || 'English',
             };
         });
         return { data: ideas, error: null };
@@ -127,6 +130,7 @@ export async function getFavoritedIdeas(userId: string): Promise<{ data: Generat
                 mindMap: data.mindMap,
                 favorited: data.favorited,
                 createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
+                language: data.language || 'English',
             };
         });
         return { data: ideas, error: null };
@@ -177,6 +181,30 @@ export async function toggleFavorite(id: string, isFavorited: boolean) {
         return { error: "Failed to update favorite status." };
     }
 }
+
+export async function regenerateMindMap(ideaId: string, ideaSummary: string, language: 'English' | 'Korean'): Promise<{ success: boolean, error: string | null }> {
+    try {
+        if (!ideaId || !ideaSummary) {
+            throw new Error('Idea ID and summary are required.');
+        }
+
+        const mindMapResult = await generateIdeaMindMap({ idea: ideaSummary, language });
+
+        const docRef = doc(db, 'ideas', ideaId);
+        await updateDoc(docRef, {
+            mindMap: mindMapResult.mindMap,
+        });
+
+        revalidatePath(`/idea/${ideaId}`);
+        revalidatePath('/archive');
+
+        return { success: true, error: null };
+    } catch (error) {
+        console.error('Error regenerating mind map:', error);
+        return { success: false, error: 'Failed to regenerate mind map. Please try again.' };
+    }
+}
+
 
 export async function upsertUser(user: User): Promise<{ error: string | null }> {
     try {

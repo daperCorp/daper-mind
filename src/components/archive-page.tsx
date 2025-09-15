@@ -3,15 +3,16 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { Star } from 'lucide-react';
-import { getArchivedIdeas, toggleFavorite, type GeneratedIdea } from '@/app/actions';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { BrainCircuit, Star } from 'lucide-react';
+import { getArchivedIdeas, regenerateMindMap, toggleFavorite, type GeneratedIdea } from '@/app/actions';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { useLanguage } from '@/context/language-context';
 import { translations } from '@/lib/translations';
+import { useToast } from '@/hooks/use-toast';
 
 function FavoriteButton({ idea }: { idea: GeneratedIdea }) {
   const [isPending, startTransition] = useTransition();
@@ -37,6 +38,38 @@ function FavoriteButton({ idea }: { idea: GeneratedIdea }) {
       <Star className={cn('size-5', isFavorited && 'fill-primary text-primary')} />
     </Button>
   );
+}
+
+function RegenerateMindMapButton({ idea }: { idea: GeneratedIdea }) {
+    const [isPending, startTransition] = useTransition();
+    const { toast } = useToast();
+
+    const handleRegenerate = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        startTransition(async () => {
+            const { success, error } = await regenerateMindMap(idea.id!, idea.summary, idea.language || 'English');
+            if (success) {
+                toast({
+                    title: "Success",
+                    description: "Mind map has been regenerated.",
+                });
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: "Error",
+                    description: error,
+                });
+            }
+        });
+    };
+
+    return (
+        <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={isPending}>
+            <BrainCircuit className="mr-2 h-4 w-4" />
+            Regenerate Mind Map
+        </Button>
+    );
 }
 
 
@@ -93,22 +126,27 @@ export function ArchivePage() {
         {ideas.length === 0 ? (
             <p className="text-muted-foreground">{t('archiveEmpty')}</p>
         ) : (
-            ideas.map((idea) => (
-                <Link href={`/idea/${idea.id}`} key={idea.id} className="block">
-                    <Card className="relative hover:shadow-md transition-shadow">
-                        <FavoriteButton idea={idea} />
-                        <CardHeader>
-                            <CardTitle>{idea.title}</CardTitle>
-                            <CardDescription>
-                                {idea.createdAt ? new Date(idea.createdAt).toLocaleDateString() : ''}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-muted-foreground line-clamp-3">{idea.summary}</p>
-                        </CardContent>
+             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {ideas.map((idea) => (
+                    <Card key={idea.id} className="relative flex flex-col hover:shadow-md transition-shadow">
+                        <Link href={`/idea/${idea.id}`} className="block flex-grow">
+                            <FavoriteButton idea={idea} />
+                            <CardHeader>
+                                <CardTitle>{idea.title}</CardTitle>
+                                <CardDescription>
+                                    {idea.createdAt ? new Date(idea.createdAt).toLocaleDateString() : ''}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-muted-foreground line-clamp-3">{idea.summary}</p>
+                            </CardContent>
+                        </Link>
+                        <CardFooter>
+                            <RegenerateMindMapButton idea={idea} />
+                        </CardFooter>
                     </Card>
-                </Link>
-            ))
+                ))}
+            </div>
         )}
     </div>
   );
