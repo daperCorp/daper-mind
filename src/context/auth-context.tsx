@@ -7,6 +7,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup, 
   signOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   type User
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -17,6 +19,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signUpWithEmail: (email: string, pass: string) => Promise<void>;
+  signInWithEmail: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -56,6 +60,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = () => handleSignIn(new GoogleAuthProvider());
+  
+  const signUpWithEmail = async (email: string, pass: string) => {
+    try {
+        setLoading(true);
+        const result = await createUserWithEmailAndPassword(auth, email, pass);
+        const { error } = await upsertUser(result.user);
+        if (error) {
+            throw new Error(error);
+        }
+    } catch (error: any) {
+        console.error("Sign up error:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Sign Up Failed',
+            description: error.message || 'There was a problem creating your account.',
+        });
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const signInWithEmail = async (email: string, pass: string) => {
+      try {
+          setLoading(true);
+          await signInWithEmailAndPassword(auth, email, pass);
+      } catch (error: any) {
+          console.error("Sign in error:", error);
+          toast({
+              variant: 'destructive',
+              title: 'Sign In Failed',
+              description: error.message || 'There was a problem signing in.',
+          });
+      } finally {
+          setLoading(false);
+      }
+  };
 
   const logout = async () => {
     try {
@@ -70,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const value = { user, loading, signInWithGoogle, logout };
+  const value = { user, loading, signInWithGoogle, signUpWithEmail, signInWithEmail, logout };
 
   return (
     <AuthContext.Provider value={value}>
