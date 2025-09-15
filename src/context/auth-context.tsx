@@ -15,6 +15,7 @@ import {
 import { auth } from '@/lib/firebase';
 import { upsertUser } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: User | null;
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -75,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userToSave: User = {
             ...result.user,
             displayName: displayName,
+            photoURL: result.user.photoURL || null,
         };
 
         const { error } = await upsertUser(userToSave);
@@ -97,7 +100,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithEmail = async (email: string, pass: string) => {
       try {
           setLoading(true);
-          await signInWithEmailAndPassword(auth, email, pass);
+          const result = await signInWithEmailAndPassword(auth, email, pass);
+          const { error } = await upsertUser(result.user);
+           if (error) {
+               throw new Error(error);
+           }
+          router.push('/');
       } catch (error: any) {
           console.error("Sign in error:", error);
           toast({
@@ -113,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       await signOut(auth);
+      router.push('/login');
     } catch (error: any) {
       console.error("Sign out error:", error);
       toast({
