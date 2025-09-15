@@ -9,6 +9,7 @@ import {
   signOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  updateProfile,
   type User
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -65,7 +66,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
         setLoading(true);
         const result = await createUserWithEmailAndPassword(auth, email, pass);
-        const { error } = await upsertUser(result.user);
+        
+        // Create a default display name from the email
+        const displayName = email.split('@')[0];
+        await updateProfile(result.user, { displayName });
+
+        // Manually create a user object to pass to upsertUser
+        const userToSave: User = {
+            ...result.user,
+            displayName: displayName,
+        };
+
+        const { error } = await upsertUser(userToSave);
+
         if (error) {
             throw new Error(error);
         }
