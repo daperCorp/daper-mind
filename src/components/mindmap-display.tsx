@@ -5,25 +5,33 @@ import type { MindMapNode as MindMapNodeType } from '@/ai/flows/generate-idea-mi
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Plus, LoaderCircle } from 'lucide-react';
+import { Plus, LoaderCircle, MoreVertical, BrainCircuit, Edit, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState, forwardRef } from 'react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 // Use a more specific name to avoid conflict with the component name
 type NodeData = MindMapNodeType & { children?: NodeData[] };
 
 interface MindMapDisplayProps {
   mindMap: NodeData;
-  onExpandNode?: (parentNodeTitle: string, existingChildren: { title: string }[]) => Promise<void>;
-  isExpanding?: boolean;
+  onExpandNode: (nodePath: string, existingChildren: { title: string }[]) => Promise<void>;
+  onAddNode: (mode: 'add' | 'edit', nodePath: string, defaultValue?: string) => void;
+  onEditNode: (mode: 'add' | 'edit', nodePath: string, defaultValue?: string) => void;
+  onDeleteNode: (nodePath: string) => void;
+  isProcessing: boolean;
 }
 
 interface MindMapNodeProps {
   node: NodeData;
   level: number;
+  path: string;
   isLast: boolean;
-  onExpandNode?: (parentNodeTitle: string, existingChildren: { title: string }[]) => Promise<void>;
-  isExpanding?: boolean;
+  onExpandNode: (nodePath: string, existingChildren: { title: string }[]) => Promise<void>;
+  onAddNode: (mode: 'add' | 'edit', nodePath: string, defaultValue?: string) => void;
+  onEditNode: (mode: 'add' | 'edit', nodePath: string, defaultValue?: string) => void;
+  onDeleteNode: (nodePath: string) => void;
+  isProcessing: boolean;
 }
 
 const levelColors = [
@@ -40,23 +48,21 @@ const connectorColors = [
   'border-muted-foreground/20',
 ];
 
-function MindMapNode({ node, level, isLast, onExpandNode, isExpanding }: MindMapNodeProps) {
-  const [expandingNode, setExpandingNode] = useState<string | null>(null);
+function MindMapNode({ node, level, path, isLast, onExpandNode, onAddNode, onEditNode, onDeleteNode, isProcessing }: MindMapNodeProps) {
+  const [processingNode, setProcessingNode] = useState<string | null>(null);
   const hasChildren = node.children && node.children.length > 0;
   const cardColor = levelColors[level] || levelColors[levelColors.length - 1];
-  const canExpand = !!onExpandNode;
-
+  
   const handleExpandClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (canExpand) {
-      setExpandingNode(node.title);
-      onExpandNode(node.title, node.children || []).finally(() => {
-        setExpandingNode(null);
-      });
-    }
+    setProcessingNode(path);
+    onExpandNode(path, node.children || []).finally(() => {
+        setProcessingNode(null);
+    });
   };
 
-  const isCurrentlyExpanding = isExpanding && expandingNode === node.title;
+  const isCurrentlyProcessing = isProcessing && processingNode === path;
+  const isRootNode = level === 0;
 
   return (
     <motion.div 
@@ -88,13 +94,35 @@ function MindMapNode({ node, level, isLast, onExpandNode, isExpanding }: MindMap
       
       <div className="flex-1 space-y-3 py-2">
         <Card className={cn("inline-block", cardColor)}>
-            <CardContent className="p-3 px-4 flex items-center gap-2">
+            <CardContent className="p-3 pr-2 flex items-center gap-2">
                 <p className="font-medium">{node.title}</p>
-                 {canExpand && (
-                  <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={handleExpandClick} disabled={isCurrentlyExpanding}>
-                    {isCurrentlyExpanding ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                  </Button>
-                )}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" disabled={isCurrentlyProcessing}>
+                            {isCurrentlyProcessing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <MoreVertical className="h-4 w-4" />}
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleExpandClick(new MouseEvent('click'))}>
+                            <BrainCircuit className="mr-2 h-4 w-4" />
+                            <span>Add with AI</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onAddNode('add', path)}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            <span>Add Manually</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onEditNode('edit', path, node.title)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            <span>Edit Node</span>
+                        </DropdownMenuItem>
+                        {!isRootNode && (
+                            <DropdownMenuItem onClick={() => onDeleteNode(path)} className="text-destructive focus:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                <span>Delete Node</span>
+                            </DropdownMenuItem>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </CardContent>
         </Card>
         
@@ -103,12 +131,16 @@ function MindMapNode({ node, level, isLast, onExpandNode, isExpanding }: MindMap
              <AnimatePresence>
                 {node.children!.map((child, index) => (
                 <MindMapNode
-                    key={`${child.title}-${index}`} // Use a more stable key
+                    key={`${path}>${child.title}`}
                     node={child}
                     level={level + 1}
+                    path={`${path}>${child.title}`}
                     isLast={index === node.children!.length - 1}
                     onExpandNode={onExpandNode}
-                    isExpanding={isExpanding}
+                    onAddNode={onAddNode}
+                    onEditNode={onEditNode}
+                    onDeleteNode={onDeleteNode}
+                    isProcessing={isProcessing}
                 />
                 ))}
             </AnimatePresence>
@@ -119,23 +151,28 @@ function MindMapNode({ node, level, isLast, onExpandNode, isExpanding }: MindMap
   );
 }
 
-export const MindMapDisplay = forwardRef<HTMLDivElement, MindMapDisplayProps>(({ mindMap, onExpandNode, isExpanding }, ref) => {
-  if (!mindMap) {
-    return <p className="text-muted-foreground">No mind map generated.</p>;
-  }
+export const MindMapDisplay = forwardRef<HTMLDivElement, MindMapDisplayProps>(
+    ({ mindMap, onExpandNode, onAddNode, onEditNode, onDeleteNode, isProcessing }, ref) => {
+    if (!mindMap) {
+        return <p className="text-muted-foreground">No mind map generated.</p>;
+    }
 
-  return (
-    <div ref={ref}>
-        <div className="space-y-2 inline-block">
-            <MindMapNode 
-                node={mindMap}
-                level={0}
-                isLast={true}
-                onExpandNode={onExpandNode}
-                isExpanding={isExpanding}
-            />
+    return (
+        <div ref={ref}>
+            <div className="space-y-2 inline-block">
+                <MindMapNode 
+                    node={mindMap}
+                    level={0}
+                    path={mindMap.title}
+                    isLast={true}
+                    onExpandNode={onExpandNode}
+                    onAddNode={onAddNode}
+                    onEditNode={onEditNode}
+                    onDeleteNode={onDeleteNode}
+                    isProcessing={isProcessing}
+                />
+            </div>
         </div>
-    </div>
-  );
+    );
 });
 MindMapDisplay.displayName = 'MindMapDisplay';

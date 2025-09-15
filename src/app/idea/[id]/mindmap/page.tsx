@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useTransition, use, useRef } from 'react';
 import { notFound } from 'next/navigation';
-import { getIdeaById, GeneratedIdea, expandMindMapNode, regenerateMindMap } from '@/app/actions';
+import { getIdeaById, GeneratedIdea, expandMindMapNode, regenerateMindMap, addManualMindMapNode, editMindMapNode, deleteMindMapNode } from '@/app/actions';
 import { MindMapDisplay } from '@/components/mindmap-display';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import { ArrowLeft, BrainCircuit, Download, LoaderCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { MindMapNode } from '@/ai/flows/generate-idea-mindmap';
 import Link from 'next/link';
+import { MindMapNodeDialog } from '@/components/mindmap-node-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const mindMapToMarkdown = (node: MindMapNode, level = 0): string => {
     let markdown = `${'  '.repeat(level)}* ${node.title}\n`;
@@ -32,14 +34,28 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
   const { toast } = useToast();
   const mindMapRef = useRef<HTMLDivElement>(null);
 
-  const fetchIdea = async () => {
+  const [dialogState, setDialogState] = useState<{
+    isOpen: boolean;
+    mode: 'add' | 'edit';
+    nodePath: string;
+    defaultValue?: string;
+  }>({ isOpen: false, mode: 'add', nodePath: '' });
+  
+  const [deleteDialogState, setDeleteDialogState] = useState<{
+    isOpen: boolean;
+    nodePath: string;
+  }>({isOpen: false, nodePath: ''});
+
+
+  const fetchIdea = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     const { data, error } = await getIdeaById(params.id);
     if (error || !data) {
       notFound();
     } else {
       setIdea(data);
     }
-    setLoading(false);
+    if (showLoading) setLoading(false);
   };
 
   useEffect(() => {
@@ -48,9 +64,18 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
+  
+  const handleOpenDialog = (mode: 'add' | 'edit', nodePath: string, defaultValue = '') => {
+    setDialogState({ isOpen: true, mode, nodePath, defaultValue });
+  };
 
-  const handleExpandNode = async (parentNodeTitle: string, existingChildren: { title: string }[]) => {
+  const handleOpenDeleteDialog = (nodePath: string) => {
+    setDeleteDialogState({ isOpen: true, nodePath });
+  };
+
+  const handleExpandNode = async (nodePath: string, existingChildren: { title: string }[]) => {
     if (!idea) return;
+    const parentNodeTitle = nodePath.split('>').pop()!;
     const existingChildrenTitles = existingChildren.map(c => c.title);
 
     startTransition(async () => {
@@ -61,14 +86,51 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
         existingChildrenTitles,
         idea.language || 'English'
       );
-      if (success && newNodes) {
-        toast({ title: 'Success', description: `${newNodes.length} new node(s) added.` });
-        await fetchIdea(); // Refetch to get the updated mind map
+      if (success) {
+        toast({ title: 'Success', description: `${newNodes?.length || 0} new node(s) added.` });
+        await fetchIdea(false); // Refetch without full loading state
       } else {
         toast({ variant: 'destructive', title: 'Error', description: error });
       }
     });
   };
+
+  const handleDialogSubmit = async (title: string) => {
+    if (!idea) return;
+    const { mode, nodePath } = dialogState;
+
+    startTransition(async () => {
+        let result: { success: boolean, error?: string | undefined };
+        if (mode === 'add') {
+            const parentNodeTitle = nodePath.split('>').pop()!;
+            result = await addManualMindMapNode(idea.id!, parentNodeTitle, title);
+        } else {
+            result = await editMindMapNode(idea.id!, nodePath, title);
+        }
+
+        if (result.success) {
+            toast({ title: 'Success', description: `Node has been ${mode === 'add' ? 'added' : 'updated'}.` });
+            await fetchIdea(false);
+        } else {
+            toast({ variant: 'destructive', title: 'Error', description: result.error });
+        }
+    });
+  };
+
+  const handleDeleteNode = async () => {
+    if (!idea) return;
+    const { nodePath } = deleteDialogState;
+    startTransition(async () => {
+      const result = await deleteMindMapNode(idea.id!, nodePath);
+      if (result.success) {
+        toast({ title: 'Success', description: 'Node has been deleted.' });
+        await fetchIdea(false);
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.error });
+      }
+    });
+  };
+
 
   const handleRegenerate = async () => {
     if (!idea) return;
@@ -190,38 +252,69 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
   }
 
   return (
-    <div className="flex flex-col h-screen bg-muted/40">
-      <header className="flex items-center justify-between p-4 border-b bg-background gap-4">
-        <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" asChild>
-                <Link href={`/idea/${idea.id}`}>
-                    <ArrowLeft className="h-4 w-4" />
-                </Link>
-            </Button>
-            <div>
-                <p className="text-sm text-muted-foreground">Mind Map for</p>
-                <h1 className="text-lg font-semibold">{idea.title}</h1>
-            </div>
-        </div>
-        <div className='flex items-center gap-2'>
-            <Button onClick={handleExportPdf} disabled={isExporting}>
-                {isExporting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                Export as PDF
-            </Button>
-            <Button onClick={handleRegenerate} disabled={isPending || isExporting}>
-                <BrainCircuit className="mr-2 h-4 w-4" />
-                Regenerate Mind Map
-            </Button>
-        </div>
-      </header>
-      <main className="flex-1 overflow-auto p-4 md:p-8">
-        <MindMapDisplay
-          ref={mindMapRef}
-          mindMap={idea.mindMap}
-          onExpandNode={handleExpandNode}
-          isExpanding={isPending}
-        />
-      </main>
-    </div>
+    <>
+      <MindMapNodeDialog
+        isOpen={dialogState.isOpen}
+        onClose={() => setDialogState(prev => ({ ...prev, isOpen: false }))}
+        onSubmit={handleDialogSubmit}
+        mode={dialogState.mode}
+        defaultValue={dialogState.defaultValue}
+        isPending={isPending}
+      />
+      <AlertDialog open={deleteDialogState.isOpen} onOpenChange={(isOpen) => setDeleteDialogState(prev => ({...prev, isOpen}))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the node and all of its children.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteNode} disabled={isPending}>
+              {isPending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="flex flex-col h-screen bg-muted/40">
+        <header className="flex items-center justify-between p-4 border-b bg-background gap-4">
+          <div className="flex items-center gap-4">
+              <Button variant="outline" size="icon" asChild>
+                  <Link href={`/idea/${idea.id}`}>
+                      <ArrowLeft className="h-4 w-4" />
+                  </Link>
+              </Button>
+              <div>
+                  <p className="text-sm text-muted-foreground">Mind Map for</p>
+                  <h1 className="text-lg font-semibold">{idea.title}</h1>
+              </div>
+          </div>
+          <div className='flex items-center gap-2'>
+              <Button onClick={handleExportPdf} disabled={isExporting}>
+                  {isExporting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                  Export as PDF
+              </Button>
+              <Button onClick={handleRegenerate} disabled={isPending || isExporting}>
+                  <BrainCircuit className="mr-2 h-4 w-4" />
+                  Regenerate Mind Map
+              </Button>
+          </div>
+        </header>
+        <main className="flex-1 overflow-auto p-4 md:p-8">
+          <MindMapDisplay
+            ref={mindMapRef}
+            mindMap={idea.mindMap}
+            onExpandNode={handleExpandNode}
+            onAddNode={handleOpenDialog}
+            onEditNode={handleOpenDialog}
+            onDeleteNode={handleOpenDeleteDialog}
+            isProcessing={isPending}
+          />
+        </main>
+      </div>
+    </>
   );
 }

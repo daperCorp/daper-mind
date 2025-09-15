@@ -1,3 +1,4 @@
+
 'use server';
 
 import { generateIdeaTitle } from '@/ai/flows/generate-idea-title';
@@ -7,7 +8,7 @@ import { generateIdeaMindMap, type MindMapNode } from '@/ai/flows/generate-idea-
 import { generateMindMapNode } from '@/ai/flows/generate-mindmap-node';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, getDocs, query, doc, getDoc, updateDoc, where, setDoc, orderBy } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, doc, getDoc, updateDoc, where, setDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import type { User } from 'firebase/auth';
 
@@ -28,6 +29,28 @@ export type GeneratedIdea = {
   userId?: string;
   language?: 'English' | 'Korean';
 };
+
+// Recursive function to find and update a node
+const findAndModifyNode = (
+    node: any,
+    targetTitle: string,
+    action: (node: any, parent?: any, index?: number) => boolean,
+    parent?: any,
+    index?: number
+): boolean => {
+    if (node.title === targetTitle) {
+        return action(node, parent, index);
+    }
+    if (node.children) {
+        for (let i = 0; i < node.children.length; i++) {
+            if (findAndModifyNode(node.children[i], targetTitle, action, node, i)) {
+                return true;
+            }
+        }
+    }
+    return false;
+};
+
 
 export async function generateIdea(prevState: any, formData: FormData): Promise<{ data: GeneratedIdea | null, error: string | null }> {
   const validatedFields = IdeaSchema.safeParse({
@@ -279,5 +302,128 @@ export async function expandMindMapNode(
     } catch (error) {
         console.error('Error expanding mind map node:', error);
         return { success: false, error: 'Failed to generate new nodes.' };
+    }
+}
+
+export async function addManualMindMapNode(ideaId: string, parentNodeTitle: string, newNodeTitle: string): Promise<{ success: boolean, error?: string }> {
+    try {
+        const ideaRef = doc(db, 'ideas', ideaId);
+        const ideaSnap = await getDoc(ideaRef);
+        if (!ideaSnap.exists()) {
+            throw new Error('Idea not found');
+        }
+        const ideaData = ideaSnap.data();
+        const mindMap = ideaData.mindMap as MindMapNode;
+
+        const success = findAndModifyNode(mindMap, parentNodeTitle, (node) => {
+            if (!node.children) node.children = [];
+            node.children.push({ title: newNodeTitle, children: [] });
+            return true;
+        });
+
+        if (success) {
+            await updateDoc(ideaRef, { mindMap });
+            revalidatePath(`/idea/${ideaId}/mindmap`);
+            return { success: true };
+        } else {
+            throw new Error('Parent node not found');
+        }
+    } catch (error: any) {
+        console.error('Error adding manual mind map node:', error);
+        return { success: false, error: error.message || 'Failed to add node.' };
+    }
+}
+
+export async function editMindMapNode(ideaId: string, nodePath: string, newNodeTitle: string): Promise<{ success: boolean, error?: string }> {
+    try {
+        const ideaRef = doc(db, 'ideas', ideaId);
+        const ideaSnap = await getDoc(ideaRef);
+        if (!ideaSnap.exists()) {
+            throw new Error('Idea not found');
+        }
+        const ideaData = ideaSnap.data();
+        const mindMap = ideaData.mindMap as MindMapNode;
+
+        const pathSegments = nodePath.split('>');
+        let currentNode: any = mindMap;
+        
+        for (let i = 0; i < pathSegments.length; i++) {
+             if (i === 0) {
+                if (currentNode.title !== pathSegments[i]) {
+                    throw new Error("Root node doesn't match path");
+                }
+            } else {
+                 const childIndex = currentNode.children?.findIndex((c: any) => c.title === pathSegments[i]);
+                if (childIndex === -1 || !currentNode.children) {
+                    throw new Error(`Node not found at path segment: ${pathSegments[i]}`);
+                }
+                currentNode = currentNode.children[childIndex];
+            }
+        }
+
+        currentNode.title = newNodeTitle;
+        
+        await updateDoc(ideaRef, { mindMap });
+        revalidatePath(`/idea/${ideaId}/mindmap`);
+        return { success: true };
+
+    } catch (error: any) {
+        console.error('Error editing mind map node:', error);
+        return { success: false, error: error.message || 'Failed to edit node.' };
+    }
+}
+
+
+export async function deleteMindMapNode(ideaId: string, nodePath: string): Promise<{ success: boolean, error?: string }> {
+    try {
+        const ideaRef = doc(db, 'ideas', ideaId);
+        const ideaSnap = await getDoc(ideaRef);
+        if (!ideaSnap.exists()) {
+            throw new Error('Idea not found');
+        }
+        const ideaData = ideaSnap.data();
+        const mindMap = ideaData.mindMap as MindMapNode;
+
+        const pathSegments = nodePath.split('>');
+        
+        // Cannot delete the root node
+        if (pathSegments.length === 1) {
+            throw new Error("Cannot delete the root node.");
+        }
+
+        let parentNode: any = null;
+        let currentNode: any = mindMap;
+
+        for (let i = 0; i < pathSegments.length; i++) {
+            if (i === 0) {
+                 if (currentNode.title !== pathSegments[i]) {
+                    throw new Error("Root node doesn't match path");
+                }
+            } else {
+                parentNode = currentNode;
+                const childIndex = currentNode.children?.findIndex((c: any) => c.title === pathSegments[i]);
+                if (childIndex === -1 || !currentNode.children) {
+                     throw new Error(`Node not found at path segment: ${pathSegments[i]}`);
+                }
+                currentNode = currentNode.children[childIndex];
+            }
+        }
+        
+        const nodeToDeleteTitle = pathSegments[pathSegments.length - 1];
+        const childIndex = parentNode.children.findIndex((c: any) => c.title === nodeToDeleteTitle);
+        
+        if (childIndex > -1) {
+            parentNode.children.splice(childIndex, 1);
+        } else {
+            throw new Error("Node to delete not found in parent's children.");
+        }
+
+        await updateDoc(ideaRef, { mindMap });
+        revalidatePath(`/idea/${ideaId}/mindmap`);
+        return { success: true };
+
+    } catch (error: any) {
+        console.error('Error deleting mind map node:', error);
+        return { success: false, error: error.message || 'Failed to delete node.' };
     }
 }
