@@ -9,8 +9,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BrainCircuit, Download, LoaderCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import showdown from 'showdown';
+import type { MindMapNode } from '@/ai/flows/generate-idea-mindmap';
+
+
+const mindMapToMarkdown = (node: MindMapNode, level = 0): string => {
+    let markdown = `${'  '.repeat(level)}* ${node.title}\n`;
+    if (node.children) {
+        for (const child of node.children) {
+            markdown += mindMapToMarkdown(child, level + 1);
+        }
+    }
+    return markdown;
+};
 
 
 export default function MindMapPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
@@ -82,29 +94,42 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
   };
 
   const handleExportPdf = async () => {
-    if (!mindMapRef.current || !idea) return;
+    if (!idea) return;
 
     setIsExporting(true);
     toast({ title: 'Exporting...', description: 'Please wait while we generate your PDF.' });
 
     try {
-        const canvas = await html2canvas(mindMapRef.current, {
-            scale: 2, // Increase resolution for better quality
-            useCORS: true,
-            backgroundColor: null, // Use transparent background
-        });
+        const markdown = mindMapToMarkdown(idea.mindMap);
+        const converter = new showdown.Converter();
+        const html = converter.makeHtml(markdown);
 
-        const imgData = canvas.toDataURL('image/png');
-
-        // Calculate PDF dimensions to maintain aspect ratio
         const pdf = new jsPDF({
-            orientation: 'landscape',
-            unit: 'px',
-            format: [canvas.width, canvas.height]
+            orientation: 'portrait',
+            unit: 'pt',
+            format: 'a4'
         });
+        
+        const styledHtml = `
+            <style>
+                body { font-family: 'Helvetica', 'sans-serif'; line-height: 1.6; }
+                ul { list-style-type: disc; padding-left: 20px; }
+                li { margin-bottom: 5px; }
+            </style>
+            <h1>${idea.title}</h1>
+            <h2>Mind Map</h2>
+            ${html}
+        `;
 
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-        pdf.save(`${idea.title.replace(/\s+/g, '_')}_MindMap.pdf`);
+        await pdf.html(styledHtml, {
+            callback: function (doc) {
+                doc.save(`${idea.title.replace(/\s+/g, '_')}_MindMap.pdf`);
+            },
+            margin: [40, 40, 40, 40],
+            autoPaging: 'text',
+            width: 515, // A4 width in points minus margins
+            windowWidth: 700
+        });
 
         toast({ title: 'Success', description: 'Your mind map has been exported as a PDF.' });
     } catch (error) {
