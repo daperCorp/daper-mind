@@ -6,7 +6,7 @@ import { generateIdeaSummary } from '@/ai/flows/generate-idea-summary';
 import { generateIdeaOutline } from '@/ai/flows/generate-idea-outline';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, orderBy, query, doc, getDoc, updateDoc, where } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 const IdeaSchema = z.object({
@@ -56,6 +56,8 @@ export async function generateIdea(prevState: any, formData: FormData): Promise<
     });
 
     revalidatePath('/');
+    revalidatePath('/archive');
+
 
     return {
       data: {
@@ -93,5 +95,69 @@ export async function getArchivedIdeas(): Promise<{ data: GeneratedIdea[] | null
     } catch (error) {
         console.error("Error fetching archived ideas:", error);
         return { data: null, error: "Failed to fetch archived ideas." };
+    }
+}
+
+
+export async function getFavoritedIdeas(): Promise<{ data: GeneratedIdea[] | null, error: string | null }> {
+    try {
+        const ideasCollection = collection(db, 'ideas');
+        const q = query(ideasCollection, where("favorited", "==", true), orderBy('createdAt', 'desc'));
+        const ideaSnapshot = await getDocs(q);
+        const ideas = ideaSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                title: data.title,
+                summary: data.summary,
+                outline: data.outline,
+                favorited: data.favorited,
+                createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
+            };
+        });
+        return { data: ideas, error: null };
+    } catch (error) {
+        console.error("Error fetching favorited ideas:", error);
+        return { data: null, error: "Failed to fetch favorited ideas." };
+    }
+}
+
+export async function getIdeaById(id: string): Promise<{ data: GeneratedIdea | null, error: string | null }> {
+    try {
+        const docRef = doc(db, 'ideas', id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const idea: GeneratedIdea = {
+                id: docSnap.id,
+                title: data.title,
+                summary: data.summary,
+                outline: data.outline,
+                favorited: data.favorited,
+                createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
+            };
+            return { data: idea, error: null };
+        } else {
+            return { data: null, error: "Idea not found." };
+        }
+    } catch (error) {
+        console.error("Error fetching idea:", error);
+        return { data: null, error: "Failed to fetch idea." };
+    }
+}
+
+export async function toggleFavorite(id: string, isFavorited: boolean) {
+    try {
+        const docRef = doc(db, 'ideas', id);
+        await updateDoc(docRef, {
+            favorited: isFavorited
+        });
+        revalidatePath('/archive');
+        revalidatePath('/favorites');
+        revalidatePath(`/idea/${id}`);
+    } catch (error) {
+        console.error("Error updating favorite status:", error);
+        return { error: "Failed to update favorite status." };
     }
 }

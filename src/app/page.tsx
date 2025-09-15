@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { IdeaArchitect } from '@/components/idea-architect';
 import { ArchivePage } from '@/components/archive-page';
+import { FavoritesPage } from '@/components/favorites-page';
 
 export default function Home() {
   const [activeMenu, setActiveMenu] = useState('new');
@@ -62,11 +63,7 @@ export default function Home() {
         <main className="flex-1 overflow-auto p-4 md:p-6">
           {activeMenu === 'new' && <IdeaArchitect />}
           {activeMenu === 'archive' && <ArchivePage />}
-          {activeMenu === 'favorites' && (
-            <div className="flex h-full items-center justify-center">
-              <p className="text-muted-foreground">You have no favorites yet.</p>
-            </div>
-          )}
+          {activeMenu === 'favorites' && <FavoritesPage />}
         </main>
       </SidebarInset>
     </SidebarProvider>
