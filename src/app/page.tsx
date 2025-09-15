@@ -25,13 +25,13 @@ export default function Home() {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="New Idea" isActive>
+              <SidebarMenuButton tooltip="New Idea">
                 <Plus />
                 <span>New Idea</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="이동이 안되는데">
+              <SidebarMenuButton tooltip="이동이 안되는데" isActive>
                 <Archive />
                 <span>이동이 안되는데</span>
               </SidebarMenuButton>
