@@ -12,7 +12,7 @@ import type { User } from 'firebase/auth';
 
 const IdeaSchema = z.object({
   idea: z.string().min(10, { message: 'Please provide a more detailed idea (at least 10 characters).' }),
-  userId: z.string(),
+  userId: z.string().min(1, { message: 'User ID is required.' }),
 });
 
 export type GeneratedIdea = {
@@ -34,7 +34,7 @@ export async function generateIdea(prevState: any, formData: FormData): Promise<
   if (!validatedFields.success) {
     return {
       data: null,
-      error: validatedFields.error.flatten().fieldErrors.idea?.[0] || 'Invalid input.',
+      error: validatedFields.error.flatten().fieldErrors.idea?.[0] || validatedFields.error.flatten().fieldErrors.userId?.[0] || 'Invalid input.',
     };
   }
 
