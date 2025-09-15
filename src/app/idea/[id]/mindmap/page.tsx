@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, BrainCircuit, Download, LoaderCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { MindMapNode } from '@/ai/flows/generate-idea-mindmap';
+import Link from 'next/link';
 
 const mindMapToMarkdown = (node: MindMapNode, level = 0): string => {
     let markdown = `${'  '.repeat(level)}* ${node.title}\n`;
@@ -193,8 +194,10 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
     <div className="flex flex-col h-screen bg-muted/40">
       <header className="flex items-center justify-between p-4 border-b bg-background gap-4">
         <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => router.back()}>
-                <ArrowLeft className="h-4 w-4" />
+            <Button variant="outline" size="icon" asChild>
+                <Link href={`/idea/${idea.id}`}>
+                    <ArrowLeft className="h-4 w-4" />
+                </Link>
             </Button>
             <div>
                 <p className="text-sm text-muted-foreground">Mind Map for</p>
