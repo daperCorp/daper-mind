@@ -11,9 +11,6 @@ import { ArrowLeft, BrainCircuit, Download, LoaderCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { MindMapNode } from '@/ai/flows/generate-idea-mindmap';
 
-// Font data for Korean character support in jsPDF
-const malgunFont = 'AAEAAAALAIAAAwAwT1MvMggjB5wAAAC8AAAAYGNtYXABDQFEAAABHAAAAFRnYXNwAAAAEAAAAWgAAAAIZ2x5ZgscAoQAAAFwAAACFGhlYWQHe9b1AAAA4AAAADZoaGVhA+IB6QAAALwAAAAkaG10eAIoAGIAAADsAAAAFGxvY2EAKABaAAABCAAAABBtYXhwABEAUgAAARgAAAAgbmFtZTd80nUAAAJYAAABb3Bvc3QAAwAAAAAEjAAAACAAAwIAAZAABQAAAUwBZgAAAEcBTAFmAAAA9QAZAIQAAAAAAAAAAAAAAAAAAAABAAAgAAAAAAAAAAAAAAAAAABAADoAgPA/8AAQAPAAEAAAAABAAAAAAAAAAAAAAAgAAAAAAADAAAAAwAAABwAAQADAAAAHAADAAEAAAAcAAQAUAAAABAAAAAAEAAAAAMAAgACAAAAAAAA/5wAMgA8AEQASgBcAG4AeQCEAJIAnACoALwAygDWAP4BIQExATsBRQFVAVsBXwFjAWsBcwF3AYMBhQGJAasBrwGzAbcBxQHHAcwBzQHPAc8BzQHPAc8BzQHPAc8BzQHPAc8BzQHPAc8BzQHPAc8BzwHPAn8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAgADAAIAAgADAAIAAgADAAIAAgACAAAAAAAAAABQAAAADAAAAAwAAAEwAAAAAAA0AIAAEAAgADAAQABQAGAAcACAAJAAoACwAMAA0ADgAPABAAEQASABMAFAAVABYAFwAYABkAGgAbABwAHQAeAB8AIAAhACIAIwAkACUAJgAnACgAKQAqACsALAAtAC4ALwAwADEAMgAzADQANQA2ADcAOAA5ADoAOwA8AD0APgA/AEAAQQBCAEMARABFAEYARwBIAEkASgBLAEwATQBOAE8AUABRAFIAUwBUAFUAVgBXAFgAWQBaAFsAXABdAF4AXwBgAGEAYgBjAGQAZQBmAGcAaABpAGoAawBsAG0AbgBvAHAAcQByAHMAdAB1AGMAZgB3AHgAeQB6AHsAfAB9AH4AfwCAAIEAggCDAIQAiQCKAIwAjgCQAJIAkwCUAJUAlgCXAJoAmwCcAJ0AnwCgAKEAogCiAKQApQCmAKcApwCoAqsAsACzALQAtwC4ALsAvADBAAAAAAAAAAAAAAAD/5wAMgA8AEQASgBcAG4AeQCEAJIAnACoALwAygDWAP4BIQExATsBRQFVAVsBXwFjAWsBcwF3AYMBhQGJAasBrwGzAbcBxQHHAcwBzQHPAc8BzQHPAc8BzQHPAc8BzQHPAc8BzQHPAc8BzQHPAc8BzQHPAc8BzQHPAn8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAgADAAIAAgADAAIAAgADAAIAAgACAAAAAAAAAABQAAAADAAAAAwAAAEwAAAAAAA0AIAAEAAgADAAQABQAGAAcACAAJAAoACwAMAA0ADgAPABAAEQASABMAFAAVABYAFwAYABkAGgAbABwAHQAeAB8AIAAhACIAIwAkACUAJgAnACgAKQAqACsALAAtAC4ALwAwADEAMgAzADQANQA2ADcAOAA5ADoAOwA8AD0APgA/AEAAQQBCAEMARABFAEYARwBIAEkASgBLAEwATQBOAE8AUABRAFIAUwBUAFUAVgBXAFgAWQBaAFsAXABdAF4AXwBgAGEAYgBjAGQAZQBmAGcAaABpAGoAawBsAG0AbgBvAHAAcQByAHMAdAB1AGMAZgB3AHgAeQB6AHsAfAB9AH4AfwCAAIEAggCDAIQAiQCKAIwAjgCQAJIAkwCUAJUAlgCXAJoAmwCcAJ0AnwCgAKEAogCiAKQApQCmAKcApwCoAqsAsACzALQAtwC4ALsAvADBAAAAAAAAAAAA';
-
 const mindMapToMarkdown = (node: MindMapNode, level = 0): string => {
     let markdown = `${'  '.repeat(level)}* ${node.title}\n`;
     if (node.children) {
@@ -102,55 +99,71 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
     try {
         const { default: jsPDF } = await import('jspdf');
         const { default: showdown } = await import('showdown');
-        
+        const { default: html2canvas } = await import('html2canvas');
+
         const markdown = mindMapToMarkdown(idea.mindMap);
         const converter = new showdown.Converter();
         const html = converter.makeHtml(markdown);
 
-        const pdf = new jsPDF({
-            orientation: 'portrait',
-            unit: 'pt',
-            format: 'a4'
-        });
-
-        // Add the font to jsPDF
-        pdf.addFileToVFS('malgun.ttf', malgunFont);
-        pdf.addFont('malgun.ttf', 'malgun', 'normal');
-        pdf.setFont('malgun');
-        
-        const styledHtml = `
+        // Create a temporary element to render the HTML for capturing
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.width = '700px'; // A4-like width
+        tempContainer.style.fontFamily = `'Malgun Gothic', 'sans-serif'`; // Ensure Korean font is used
+        tempContainer.innerHTML = `
             <style>
-                body { font-family: 'malgun', 'Malgun Gothic', 'sans-serif'; line-height: 1.6; }
+                body { font-family: 'Malgun Gothic', sans-serif; line-height: 1.6; background-color: white; color: black; }
                 ul { list-style-type: disc; padding-left: 20px; }
                 li { margin-bottom: 5px; }
+                h1, h2 { padding-bottom: 10px; border-bottom: 1px solid #eee; }
             </style>
             <h1>${idea.title}</h1>
             <h2>Mind Map</h2>
             ${html}
         `;
+        document.body.appendChild(tempContainer);
 
-        await pdf.html(styledHtml, {
-            callback: function (doc) {
-                doc.save(`${idea.title.replace(/\s+/g, '_')}_MindMap.pdf`);
-            },
-            margin: [40, 40, 40, 40],
-            autoPaging: 'text',
-            width: 515, // A4 width in points minus margins
-            windowWidth: 700,
-            fontFaces: [
-              {
-                family: 'malgun',
-                style: 'normal',
-                weight: 'normal',
-                src: [{
-                  url: 'malgun.ttf',
-                  format: 'truetype'
-                }]
-              }
-            ]
+        const canvas = await html2canvas(tempContainer, {
+            scale: 2, // Increase resolution
+            backgroundColor: '#ffffff', // Ensure background is white
+            useCORS: true,
+        });
+        
+        document.body.removeChild(tempContainer);
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'px',
+            format: 'a4'
         });
 
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const ratio = canvasWidth / canvasHeight;
+        const imgWidth = pdfWidth;
+        const imgHeight = pdfWidth / ratio;
+        
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pdfHeight;
+        }
+
+        pdf.save(`${idea.title.replace(/\s+/g, '_')}_MindMap.pdf`);
+        
         toast({ title: 'Success', description: 'Your mind map has been exported as a PDF.' });
+
     } catch (error) {
         console.error("Error exporting PDF:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to export mind map.' });
