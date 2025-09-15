@@ -90,7 +90,7 @@ export async function generateIdea(prevState: any, formData: FormData): Promise<
 export async function getArchivedIdeas(userId: string): Promise<{ data: GeneratedIdea[] | null, error: string | null }> {
     try {
         const ideasCollection = collection(db, 'ideas');
-        const q = query(ideasCollection, where("userId", "==", userId));
+        const q = query(ideasCollection, where("userId", "==", userId), orderBy("createdAt", "desc"));
         const ideaSnapshot = await getDocs(q);
         const ideas = ideaSnapshot.docs.map(doc => {
             const data = doc.data();
@@ -115,7 +115,7 @@ export async function getArchivedIdeas(userId: string): Promise<{ data: Generate
 export async function getFavoritedIdeas(userId: string): Promise<{ data: GeneratedIdea[] | null, error: string | null }> {
     try {
         const ideasCollection = collection(db, 'ideas');
-        const q = query(ideasCollection, where("userId", "==", userId), where("favorited", "==", true));
+        const q = query(ideasCollection, where("userId", "==", userId), where("favorited", "==", true), orderBy("createdAt", "desc"));
         const ideaSnapshot = await getDocs(q);
         const ideas = ideaSnapshot.docs.map(doc => {
             const data = doc.data();
