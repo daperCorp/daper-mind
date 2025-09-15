@@ -48,6 +48,11 @@ export const translations: Translations = {
 
   // User Profile
   logout: { English: 'Log out', Korean: '로그아웃' },
+  id: { English: 'ID', Korean: '아이디' },
+  settings: { English: 'Settings', Korean: '설정' },
+  language: { English: 'Language', Korean: '언어' },
+  getHelp: { English: 'Get help', Korean: '도움말' },
+  upgradePlan: { English: 'Upgrade plan', Korean: '플랜 업그레이드' },
 
   // Language Selector
   selectLanguage: { English: 'Select language', Korean: '언어 선택' },
@@ -72,4 +77,13 @@ export const translations: Translations = {
   passwordsDoNotMatch: { English: 'Passwords do not match', Korean: '비밀번호가 일치하지 않습니다.' },
   createAccount: { English: 'Create an account', Korean: '계정 만들기' },
   alreadyHaveAccount: { English: 'Already have an account?', Korean: '이미 계정이 있으신가요?' },
+
+  // Settings Page
+  myAccount: { English: 'My Account', Korean: '내 계정' },
+  planDetails: { English: 'Plan Details', Korean: '플랜 정보' },
+  currentPlan: { English: 'Current Plan', Korean: '현재 플랜' },
+  free: { English: 'Free', Korean: '무료' },
+  manageAccount: { English: 'Manage Account', Korean: '계정 관리' },
+  contactSupport: { English: 'Contact Support', Korean: '고객 지원팀에 문의' },
+  signOut: { English: 'Sign Out', Korean: '로그아웃' },
 };
