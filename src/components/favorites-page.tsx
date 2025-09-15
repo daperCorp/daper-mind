@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/auth-context';
 
 function FavoriteButton({ idea, onUnfavorite }: { idea: GeneratedIdea, onUnfavorite: (id: string) => void }) {
   const [isPending, startTransition] = useTransition();
@@ -40,10 +41,12 @@ export function FavoritesPage() {
   const [ideas, setIdeas] = useState<GeneratedIdea[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
+    if (!user) return;
     async function fetchIdeas() {
-      const { data, error } = await getFavoritedIdeas();
+      const { data, error } = await getFavoritedIdeas(user.uid);
       if (data) {
         setIdeas(data);
       }
@@ -53,7 +56,7 @@ export function FavoritesPage() {
       setLoading(false);
     }
     fetchIdeas();
-  }, []);
+  }, [user]);
   
   const handleUnfavorite = (id: string) => {
       setIdeas(prevIdeas => prevIdeas.filter(idea => idea.id !== id));

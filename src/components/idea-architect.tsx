@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { OutlineDisplay } from './outline-display';
+import { useAuth } from '@/context/auth-context';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -30,6 +31,7 @@ export function IdeaArchitect() {
   const [result, setResult] = useState<GeneratedIdea | null>(null);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (state.error) {
@@ -63,6 +65,7 @@ export function IdeaArchitect() {
               className="min-h-[120px] resize-y"
               required
             />
+            <input type="hidden" name="userId" value={user?.uid} />
             <div className="flex justify-end">
               <SubmitButton />
             </div>
