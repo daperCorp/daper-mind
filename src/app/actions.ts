@@ -86,7 +86,7 @@ export async function getArchivedIdeas(): Promise<{ data: GeneratedIdea[] | null
                 summary: data.summary,
                 outline: data.outline,
                 favorited: data.favorited,
-                createdAt: data.createdAt.toDate(),
+                createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
             };
         });
         return { data: ideas, error: null };
