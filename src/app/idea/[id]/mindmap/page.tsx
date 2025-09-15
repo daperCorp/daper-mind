@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState, useTransition, use, useRef } from 'react';
-import { notFound, useRouter } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { getIdeaById, GeneratedIdea, expandMindMapNode, regenerateMindMap } from '@/app/actions';
 import { MindMapDisplay } from '@/components/mindmap-display';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,7 +29,6 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [isExporting, setIsExporting] = useState(false);
-  const router = useRouter();
   const { toast } = useToast();
   const mindMapRef = useRef<HTMLDivElement>(null);
 
