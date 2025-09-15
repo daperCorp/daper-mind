@@ -15,6 +15,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { IdeaArchitect } from '@/components/idea-architect';
+import { ArchivePage } from '@/components/archive-page';
 
 export default function Home() {
   const [activeMenu, setActiveMenu] = useState('new');
@@ -60,11 +61,7 @@ export default function Home() {
         </header>
         <main className="flex-1 overflow-auto p-4 md:p-6">
           {activeMenu === 'new' && <IdeaArchitect />}
-          {activeMenu === 'archive' && (
-            <div className="flex h-full items-center justify-center">
-              <p className="text-muted-foreground">Archive is empty.</p>
-            </div>
-          )}
+          {activeMenu === 'archive' && <ArchivePage />}
           {activeMenu === 'favorites' && (
             <div className="flex h-full items-center justify-center">
               <p className="text-muted-foreground">You have no favorites yet.</p>
