@@ -10,6 +10,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLanguage } from '@/context/language-context';
+import { translations } from '@/lib/translations';
 
 function GoogleIcon() {
     return (
@@ -24,6 +26,8 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { language } = useLanguage();
+  const t = (key: keyof typeof translations) => translations[key][language];
 
   useEffect(() => {
     if (user) {
@@ -61,39 +65,39 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-background">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Enter your email below to login to your account.</CardDescription>
+          <CardTitle className="text-2xl">{t('login')}</CardTitle>
+          <CardDescription>{t('loginPrompt')}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <form onSubmit={handleEmailLogin} className="grid gap-4">
             <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('email')}</Label>
                 <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t('password')}</Label>
                 <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
-            <Button type="submit" className="w-full">Sign In</Button>
+            <Button type="submit" className="w-full">{t('signIn')}</Button>
           </form>
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                <span className="bg-background px-2 text-muted-foreground">{t('orContinueWith')}</span>
             </div>
           </div>
           <Button variant="outline" onClick={signInWithGoogle}>
             <GoogleIcon />
-            <span className='ml-2'>Sign in with Google</span>
+            <span className='ml-2'>{t('signInWithGoogle')}</span>
           </Button>
         </CardContent>
         <CardFooter>
             <div className="text-sm w-full text-center">
-                Don&apos;t have an account?{' '}
+                {t('noAccount')}{' '}
                 <Link href="/register" className="underline">
-                    Sign up
+                    {t('signUp')}
                 </Link>
             </div>
         </CardFooter>

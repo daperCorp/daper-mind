@@ -10,6 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
+import { useLanguage } from '@/context/language-context';
+import { translations } from '@/lib/translations';
 
 function FavoriteButton({ idea, onUnfavorite }: { idea: GeneratedIdea, onUnfavorite: (id: string) => void }) {
   const [isPending, startTransition] = useTransition();
@@ -42,6 +44,8 @@ export function FavoritesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const t = (key: keyof typeof translations) => translations[key][language];
 
   useEffect(() => {
     if (!user) return;
@@ -77,12 +81,12 @@ export function FavoritesPage() {
   }
 
   if (ideas.length === 0) {
-    return <p className="text-muted-foreground">You have no favorites yet. Star an idea in the archive to see it here!</p>;
+    return <p className="text-muted-foreground">{t('favoritesEmpty')}</p>;
   }
 
   return (
     <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Favorite Ideas</h1>
+        <h1 className="text-2xl font-bold">{t('favoriteIdeas')}</h1>
         {ideas.map((idea) => (
             <Link href={`/idea/${idea.id}`} key={idea.id} className="block">
                 <Card className="relative hover:shadow-md transition-shadow">

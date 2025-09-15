@@ -10,6 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
+import { useLanguage } from '@/context/language-context';
+import { translations } from '@/lib/translations';
 
 function FavoriteButton({ idea }: { idea: GeneratedIdea }) {
   const [isPending, startTransition] = useTransition();
@@ -43,6 +45,8 @@ export function ArchivePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const t = (key: keyof typeof translations) => translations[key][language];
 
   useEffect(() => {
     if (!user) return;
@@ -74,12 +78,12 @@ export function ArchivePage() {
   }
 
   if (ideas.length === 0) {
-    return <p className="text-muted-foreground">Your archive is empty. Generate some ideas to get started!</p>;
+    return <p className="text-muted-foreground">{t('archiveEmpty')}</p>;
   }
 
   return (
     <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Idea Archive</h1>
+        <h1 className="text-2xl font-bold">{t('ideaArchive')}</h1>
         {ideas.map((idea) => (
             <Link href={`/idea/${idea.id}`} key={idea.id} className="block">
                 <Card className="relative hover:shadow-md transition-shadow">

@@ -10,12 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Download, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-
+import { useLanguage } from '@/context/language-context';
+import { translations } from '@/lib/translations';
 
 export default function IdeaDetailPage({ params }: { params: { id: string } }) {
   const [idea, setIdea] = useState<GeneratedIdea | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const t = (key: keyof typeof translations) => translations[key][language];
 
   useEffect(() => {
     const id = params.id;
@@ -43,9 +46,9 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
     const copyToClipboard = async () => {
         try {
             await navigator.clipboard.writeText(window.location.href);
-            toast({ title: 'Success', description: 'Link copied to clipboard!' });
+            toast({ title: 'Success', description: t('linkCopied') });
         } catch (err) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not copy link.' });
+            toast({ variant: 'destructive', title: 'Error', description: t('linkCopyError') });
         }
     };
 
@@ -74,7 +77,7 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast({ title: 'Success', description: 'Idea exported as a text file.' });
+    toast({ title: 'Success', description: t('ideaExported') });
   };
   
   if (loading || !idea) {
@@ -103,18 +106,18 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
         <div>
             <h1 className="text-3xl font-bold text-primary">{idea.title}</h1>
             <p className="text-muted-foreground">
-                Created on {idea.createdAt ? new Date(idea.createdAt).toLocaleDateString() : 'N/A'}
+                {t('createdOn')} {idea.createdAt ? new Date(idea.createdAt).toLocaleDateString() : 'N/A'}
             </p>
         </div>
         <div className="flex gap-2">
-            <Button variant="outline" onClick={handleShare}><Share2 className="mr-2" /> Share</Button>
-            <Button onClick={handleExport}><Download className="mr-2" /> Export</Button>
+            <Button variant="outline" onClick={handleShare}><Share2 className="mr-2" /> {t('share')}</Button>
+            <Button onClick={handleExport}><Download className="mr-2" /> {t('export')}</Button>
         </div>
       </div>
       
       <Card>
         <CardHeader>
-          <CardTitle>Summary</CardTitle>
+          <CardTitle>{t('summary')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">{idea.summary}</p>
@@ -123,7 +126,7 @@ export default function IdeaDetailPage({ params }: { params: { id: string } }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Outline</CardTitle>
+          <CardTitle>{t('outline')}</CardTitle>
         </CardHeader>
         <CardContent>
           <OutlineDisplay outline={idea.outline} />

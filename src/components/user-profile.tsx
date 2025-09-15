@@ -13,9 +13,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LogOut, User as UserIcon } from 'lucide-react';
+import { useLanguage } from '@/context/language-context';
+import { translations } from '@/lib/translations';
 
 export function UserProfile() {
   const { user, logout } = useAuth();
+  const { language } = useLanguage();
+  const t = (key: keyof typeof translations) => translations[key][language];
 
   if (!user) {
     return null;
@@ -48,7 +52,7 @@ export function UserProfile() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={logout}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>{t('logout')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

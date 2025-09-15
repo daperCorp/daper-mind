@@ -22,11 +22,16 @@ import { UserProfile } from '@/components/user-profile';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LanguageSelector } from '@/components/language-selector';
+import { useLanguage } from '@/context/language-context';
+import { translations } from '@/lib/translations';
 
 export default function Home() {
   const [activeMenu, setActiveMenu] = useState('new');
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { language } = useLanguage();
+
+  const t = (key: keyof typeof translations) => translations[key][language];
 
   if (loading) {
     return (
@@ -54,21 +59,21 @@ export default function Home() {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="New Idea" isActive={activeMenu === 'new'} onClick={() => setActiveMenu('new')}>
+              <SidebarMenuButton tooltip={t('newIdea')} isActive={activeMenu === 'new'} onClick={() => setActiveMenu('new')}>
                 <Plus />
-                <span>New Idea</span>
+                <span>{t('newIdea')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Archive" isActive={activeMenu === 'archive'} onClick={() => setActiveMenu('archive')}>
+              <SidebarMenuButton tooltip={t('archive')} isActive={activeMenu === 'archive'} onClick={() => setActiveMenu('archive')}>
                 <Archive />
-                <span>Archive</span>
+                <span>{t('archive')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Favorites" isActive={activeMenu === 'favorites'} onClick={() => setActiveMenu('favorites')}>
+              <SidebarMenuButton tooltip={t('favorites')} isActive={activeMenu === 'favorites'} onClick={() => setActiveMenu('favorites')}>
                 <Star />
-                <span>Favorites</span>
+                <span>{t('favorites')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -78,7 +83,7 @@ export default function Home() {
         <header className="flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-sm md:px-6">
           <SidebarTrigger className="md:hidden" />
           <div className="flex-1">
-            <h1 className="text-lg font-semibold md:text-xl">AI Idea Architect</h1>
+            <h1 className="text-lg font-semibold md:text-xl">{t('aiIdeaArchitect')}</h1>
           </div>
           <div className='flex items-center gap-4'>
             <LanguageSelector />

@@ -12,9 +12,13 @@ import { useToast } from '@/hooks/use-toast';
 import { OutlineDisplay } from './outline-display';
 import { useAuth } from '@/context/auth-context';
 import { useLanguage } from '@/context/language-context';
+import { translations } from '@/lib/translations';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const { language } = useLanguage();
+  const t = (key: keyof typeof translations) => translations[key][language];
+
   return (
     <Button type="submit" disabled={pending} className="w-full sm:w-auto">
       {pending ? (
@@ -22,7 +26,7 @@ function SubmitButton() {
       ) : (
         <Sparkles className="mr-2" />
       )}
-      <span>{pending ? 'Generating...' : 'Generate Idea'}</span>
+      <span>{pending ? t('generating') : t('generateIdea')}</span>
     </Button>
   );
 }
@@ -34,6 +38,7 @@ export function IdeaArchitect() {
   const formRef = useRef<HTMLFormElement>(null);
   const { user } = useAuth();
   const { language } = useLanguage();
+  const t = (key: keyof typeof translations) => translations[key][language];
 
   useEffect(() => {
     if (state.error) {
@@ -56,7 +61,7 @@ export function IdeaArchitect() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lightbulb className="text-primary" />
-            <span>Describe your idea</span>
+            <span>{t('describeYourIdea')}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -89,7 +94,7 @@ export function IdeaArchitect() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Idea Outline</CardTitle>
+              <CardTitle>{t('ideaOutline')}</CardTitle>
             </CardHeader>
             <CardContent>
               <OutlineDisplay outline={result.outline} />
