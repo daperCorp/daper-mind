@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -60,6 +61,7 @@ const prompt = ai.definePrompt({
   2. Main branches (level 2) extending from the root.
   3. Sub-branches (level 3) extending from the level 2 branches.
   4. Deeper sub-branches (level 4) extending from the level 3 branches. Do not create a level 5.
+  Return the result as a JSON object with UTF-8 encoding.
 
   Idea: {{idea}}
   `,

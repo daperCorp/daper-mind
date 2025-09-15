@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -36,10 +37,10 @@ const prompt = ai.definePrompt({
 
   Based on the following idea description, suggest a title that captures the essence of the idea.
   The title must be in {{language}}.
+  Return the result as a JSON object with UTF-8 encoding.
 
   Idea Description: {{{ideaDescription}}}
-
-  Title:`,
+  `,
 });
 
 const generateIdeaTitleFlow = ai.defineFlow(

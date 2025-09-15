@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -33,6 +34,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert in generating outlines for ideas.
 
   Generate an outline for the following idea. The outline must be in {{language}}.
+  Return the result as a JSON object with UTF-8 encoding.
 
   {{idea}}
   `,

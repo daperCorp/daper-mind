@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -30,7 +31,7 @@ const prompt = ai.definePrompt({
   name: 'generateIdeaSummaryPrompt',
   input: {schema: GenerateIdeaSummaryInputSchema},
   output: {schema: GenerateIdeaSummaryOutputSchema},
-  prompt: `Summarize the following idea in a concise manner. The summary must be in {{language}}:\n\n{{{idea}}}`,
+  prompt: `Summarize the following idea in a concise manner. The summary must be in {{language}}. Return the result as a JSON object with UTF-8 encoding:\n\n{{{idea}}}`,
 });
 
 const generateIdeaSummaryFlow = ai.defineFlow(
