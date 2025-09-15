@@ -7,7 +7,7 @@ import { generateIdeaMindMap, type MindMapNode } from '@/ai/flows/generate-idea-
 import { generateMindMapNode } from '@/ai/flows/generate-mindmap-node';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, getDocs, query, doc, getDoc, updateDoc, where, setDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, doc, getDoc, updateDoc, where, setDoc, orderBy } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import type { User } from 'firebase/auth';
 
@@ -250,16 +250,14 @@ export async function expandMindMapNode(
             const ideaData = ideaSnap.data();
             const mindMap = ideaData.mindMap as MindMapNode;
 
-            // Find the parent node and add the new children
-            const findAndAdd = (node: MindMapNode): boolean => {
+            // Recursive function to find the parent node and add new children
+            const findAndAdd = (node: any): boolean => {
                 if (node.title === parentNodeTitle) {
                     if (!node.children) node.children = [];
-                    // @ts-ignore
                     node.children.push(...newNodes);
                     return true;
                 }
                 if (node.children) {
-                    // @ts-ignore
                     for (const child of node.children) {
                         if (findAndAdd(child)) return true;
                     }
@@ -267,11 +265,13 @@ export async function expandMindMapNode(
                 return false;
             };
 
-            findAndAdd(mindMap);
-            
-            await updateDoc(ideaRef, { mindMap });
-
-            revalidatePath(`/idea/${ideaId}/mindmap`);
+            if (findAndAdd(mindMap)) {
+                await updateDoc(ideaRef, { mindMap });
+                revalidatePath(`/idea/${ideaId}/mindmap`);
+            } else {
+                // This case should ideally not happen if the UI is in sync
+                throw new Error('Parent node not found in mind map');
+            }
         }
 
         return { success: true, newNodes };

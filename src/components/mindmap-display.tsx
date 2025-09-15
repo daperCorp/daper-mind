@@ -1,21 +1,25 @@
 
 'use client';
 
-import type { MindMapNode } from '@/ai/flows/generate-idea-mindmap';
+import type { MindMapNode as MindMapNodeType } from '@/ai/flows/generate-idea-mindmap';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Plus, LoaderCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useState } from 'react';
+
+// Use a more specific name to avoid conflict with the component name
+type NodeData = MindMapNodeType & { children?: NodeData[] };
 
 interface MindMapDisplayProps {
-  mindMap: MindMapNode;
+  mindMap: NodeData;
   onExpandNode?: (parentNodeTitle: string, existingChildren: { title: string }[]) => Promise<void>;
   isExpanding?: boolean;
 }
 
 interface MindMapNodeProps {
-  node: MindMapNode & { children?: MindMapNode[] };
+  node: NodeData;
   level: number;
   isLast: boolean;
   onExpandNode?: (parentNodeTitle: string, existingChildren: { title: string }[]) => Promise<void>;
@@ -26,25 +30,35 @@ const levelColors = [
   'bg-primary/20 border-primary/30 text-primary-foreground',
   'bg-secondary border-border',
   'bg-card border-border',
+  'bg-muted/50 border-border',
 ];
 
 const connectorColors = [
   'border-primary/50',
   'border-secondary-foreground/30',
   'border-muted-foreground/30',
+  'border-muted-foreground/20',
 ];
 
-function Node({ node, level, isLast, onExpandNode, isExpanding }: MindMapNodeProps) {
+const MAX_DEPTH = 4;
+
+function MindMapNode({ node, level, isLast, onExpandNode, isExpanding }: MindMapNodeProps) {
+  const [expandingNode, setExpandingNode] = useState<string | null>(null);
   const hasChildren = node.children && node.children.length > 0;
   const cardColor = levelColors[level] || levelColors[levelColors.length - 1];
-  const canExpand = level === 1 && onExpandNode;
+  const canExpand = level < MAX_DEPTH -1 && onExpandNode; // Can only expand nodes up to the second to last level
 
   const handleExpandClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (canExpand) {
-      onExpandNode(node.title, node.children || []);
+      setExpandingNode(node.title);
+      onExpandNode(node.title, node.children || []).finally(() => {
+        setExpandingNode(null);
+      });
     }
   };
+
+  const isCurrentlyExpanding = isExpanding && expandingNode === node.title;
 
   return (
     <motion.div 
@@ -68,7 +82,7 @@ function Node({ node, level, isLast, onExpandNode, isExpanding }: MindMapNodePro
         <div
           className={cn(
             'w-5 h-5 rounded-full mt-[16px] border-2 bg-background',
-             connectorColors[level]
+             connectorColors[level] || connectorColors[connectorColors.length - 1]
           )}
         />
         {!isLast && level > 0 && <div className={cn('w-px grow bg-border')} />}
@@ -79,8 +93,8 @@ function Node({ node, level, isLast, onExpandNode, isExpanding }: MindMapNodePro
             <CardContent className="p-3 px-4 flex items-center gap-2">
                 <p className="font-medium">{node.title}</p>
                  {canExpand && (
-                  <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={handleExpandClick} disabled={isExpanding}>
-                    {isExpanding ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={handleExpandClick} disabled={isCurrentlyExpanding}>
+                    {isCurrentlyExpanding ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                   </Button>
                 )}
             </CardContent>
@@ -90,11 +104,13 @@ function Node({ node, level, isLast, onExpandNode, isExpanding }: MindMapNodePro
           <div className="space-y-3 pl-4 border-l border-dashed ml-2.5">
              <AnimatePresence>
                 {node.children!.map((child, index) => (
-                <Node
-                    key={index} // Consider a more stable key if titles can change
-                    node={child as MindMapNode}
+                <MindMapNode
+                    key={`${child.title}-${index}`} // Use a more stable key
+                    node={child}
                     level={level + 1}
                     isLast={index === node.children!.length - 1}
+                    onExpandNode={onExpandNode}
+                    isExpanding={isExpanding}
                 />
                 ))}
             </AnimatePresence>
@@ -112,7 +128,7 @@ export function MindMapDisplay({ mindMap, onExpandNode, isExpanding }: MindMapDi
 
   return (
     <div className="space-y-2">
-      <Node 
+      <MindMapNode 
         node={mindMap}
         level={0}
         isLast={true}

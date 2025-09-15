@@ -18,8 +18,13 @@ const GenerateIdeaMindMapInputSchema = z.object({
 });
 export type GenerateIdeaMindMapInput = z.infer<typeof GenerateIdeaMindMapInputSchema>;
 
+const L4NodeSchema = z.object({
+  title: z.string().describe('The title of the level 4 mind map node.'),
+});
+
 const L3NodeSchema = z.object({
   title: z.string().describe('The title of the level 3 mind map node.'),
+  children: z.array(L4NodeSchema).optional().describe('An array of level 4 child nodes.'),
 });
 
 const L2NodeSchema = z.object({
@@ -35,7 +40,7 @@ const L1NodeSchema = z.object({
 export type MindMapNode = z.infer<typeof L1NodeSchema>;
 
 const GenerateIdeaMindMapOutputSchema = z.object({
-  mindMap: L1NodeSchema.describe('The generated mind map for the idea, with exactly three hierarchical levels.'),
+  mindMap: L1NodeSchema.describe('The generated mind map for the idea, with exactly four hierarchical levels.'),
 });
 export type GenerateIdeaMindMapOutput = z.infer<typeof GenerateIdeaMindMapOutputSchema>;
 
@@ -50,10 +55,11 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert in creating structured mind maps from ideas.
 
   Generate a mind map for the following idea. The mind map must be in {{language}}.
-  The mind map must have exactly three hierarchical levels:
+  The mind map must have exactly four hierarchical levels:
   1. A single root node representing the central idea.
-  2. Several main branches (level 2) extending from the root.
-  3. Sub-branches (level 3) extending from the level 2 branches. Do not create a level 4.
+  2. Main branches (level 2) extending from the root.
+  3. Sub-branches (level 3) extending from the level 2 branches.
+  4. Deeper sub-branches (level 4) extending from the level 3 branches. Do not create a level 5.
 
   Idea: {{idea}}
   `,

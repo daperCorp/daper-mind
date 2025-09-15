@@ -11,8 +11,8 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
-const L3NodeSchema = z.object({
-  title: z.string().describe('The title of the level 3 mind map node.'),
+const NewNodeSchema = z.object({
+  title: z.string().describe('The title of the new mind map node.'),
 });
 
 const GenerateMindMapNodeInputSchema = z.object({
@@ -25,7 +25,7 @@ export type GenerateMindMapNodeInput = z.infer<typeof GenerateMindMapNodeInputSc
 
 
 const GenerateMindMapNodeOutputSchema = z.object({
-  newNodes: z.array(L3NodeSchema).describe('An array of newly generated child nodes.'),
+  newNodes: z.array(NewNodeSchema).describe('An array of newly generated child nodes.'),
 });
 export type GenerateMindMapNodeOutput = z.infer<typeof GenerateMindMapNodeOutputSchema>;
 
