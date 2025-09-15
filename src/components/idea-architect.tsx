@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { OutlineDisplay } from './outline-display';
 import { useAuth } from '@/context/auth-context';
+import { useLanguage } from '@/context/language-context';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -32,6 +33,7 @@ export function IdeaArchitect() {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const { user } = useAuth();
+  const { language } = useLanguage();
 
   useEffect(() => {
     if (state.error) {
@@ -66,6 +68,7 @@ export function IdeaArchitect() {
               required
             />
             <input type="hidden" name="userId" value={user?.uid} />
+            <input type="hidden" name="language" value={language} />
             <div className="flex justify-end">
               <SubmitButton />
             </div>

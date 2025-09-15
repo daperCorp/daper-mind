@@ -13,6 +13,7 @@ import type { User } from 'firebase/auth';
 const IdeaSchema = z.object({
   idea: z.string().min(10, { message: 'Please provide a more detailed idea (at least 10 characters).' }),
   userId: z.string().min(1, { message: 'User ID is required.' }),
+  language: z.enum(['English', 'Korean']),
 });
 
 export type GeneratedIdea = {
@@ -29,22 +30,24 @@ export async function generateIdea(prevState: any, formData: FormData): Promise<
   const validatedFields = IdeaSchema.safeParse({
     idea: formData.get('idea'),
     userId: formData.get('userId'),
+    language: formData.get('language'),
   });
 
   if (!validatedFields.success) {
+    const fieldErrors = validatedFields.error.flatten().fieldErrors;
     return {
       data: null,
-      error: validatedFields.error.flatten().fieldErrors.idea?.[0] || validatedFields.error.flatten().fieldErrors.userId?.[0] || 'Invalid input.',
+      error: fieldErrors.idea?.[0] || fieldErrors.userId?.[0] || fieldErrors.language?.[0] || 'Invalid input.',
     };
   }
 
-  const { idea: ideaDescription, userId } = validatedFields.data;
+  const { idea: ideaDescription, userId, language } = validatedFields.data;
 
   try {
     const [titleResult, summaryResult, outlineResult] = await Promise.all([
-      generateIdeaTitle({ ideaDescription }),
-      generateIdeaSummary({ idea: ideaDescription }),
-      generateIdeaOutline({ idea: ideaDescription }),
+      generateIdeaTitle({ ideaDescription, language }),
+      generateIdeaSummary({ idea: ideaDescription, language }),
+      generateIdeaOutline({ idea: ideaDescription, language }),
     ]);
 
     const newIdea: Omit<GeneratedIdea, 'id' | 'createdAt'> = {

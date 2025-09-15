@@ -21,6 +21,7 @@ import { useAuth } from '@/context/auth-context';
 import { UserProfile } from '@/components/user-profile';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LanguageSelector } from '@/components/language-selector';
 
 export default function Home() {
   const [activeMenu, setActiveMenu] = useState('new');
@@ -79,7 +80,10 @@ export default function Home() {
           <div className="flex-1">
             <h1 className="text-lg font-semibold md:text-xl">AI Idea Architect</h1>
           </div>
-          <UserProfile />
+          <div className='flex items-center gap-4'>
+            <LanguageSelector />
+            <UserProfile />
+          </div>
         </header>
         <main className="flex-1 overflow-auto p-4 md:p-6">
           {activeMenu === 'new' && <IdeaArchitect />}

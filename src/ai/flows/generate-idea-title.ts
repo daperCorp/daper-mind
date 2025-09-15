@@ -15,6 +15,7 @@ const GenerateIdeaTitleInputSchema = z.object({
   ideaDescription: z
     .string()
     .describe('The description of the idea for which a title is needed.'),
+  language: z.enum(['English', 'Korean']).describe('The language for the generated title.'),
 });
 export type GenerateIdeaTitleInput = z.infer<typeof GenerateIdeaTitleInputSchema>;
 
@@ -34,6 +35,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert in generating creative and concise titles for ideas.
 
   Based on the following idea description, suggest a title that captures the essence of the idea.
+  The title must be in {{language}}.
 
   Idea Description: {{{ideaDescription}}}
 

@@ -13,6 +13,7 @@ import {z} from 'genkit';
 
 const GenerateIdeaSummaryInputSchema = z.object({
   idea: z.string().describe('The idea to summarize.'),
+  language: z.enum(['English', 'Korean']).describe('The language for the generated summary.'),
 });
 export type GenerateIdeaSummaryInput = z.infer<typeof GenerateIdeaSummaryInputSchema>;
 
@@ -29,7 +30,7 @@ const prompt = ai.definePrompt({
   name: 'generateIdeaSummaryPrompt',
   input: {schema: GenerateIdeaSummaryInputSchema},
   output: {schema: GenerateIdeaSummaryOutputSchema},
-  prompt: `Summarize the following idea in a concise manner:\n\n{{{idea}}}`,
+  prompt: `Summarize the following idea in a concise manner. The summary must be in {{language}}:\n\n{{{idea}}}`,
 });
 
 const generateIdeaSummaryFlow = ai.defineFlow(

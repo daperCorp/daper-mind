@@ -13,6 +13,7 @@ import {z} from 'genkit';
 
 const GenerateIdeaOutlineInputSchema = z.object({
   idea: z.string().describe('The idea to generate an outline for.'),
+  language: z.enum(['English', 'Korean']).describe('The language for the generated outline.'),
 });
 export type GenerateIdeaOutlineInput = z.infer<typeof GenerateIdeaOutlineInputSchema>;
 
@@ -31,7 +32,7 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateIdeaOutlineOutputSchema},
   prompt: `You are an expert in generating outlines for ideas.
 
-  Generate an outline for the following idea:
+  Generate an outline for the following idea. The outline must be in {{language}}.
 
   {{idea}}
   `,
