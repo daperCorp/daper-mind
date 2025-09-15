@@ -9,10 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BrainCircuit, Download, LoaderCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import jsPDF from 'jspdf';
-import showdown from 'showdown';
 import type { MindMapNode } from '@/ai/flows/generate-idea-mindmap';
-
 
 const mindMapToMarkdown = (node: MindMapNode, level = 0): string => {
     let markdown = `${'  '.repeat(level)}* ${node.title}\n`;
@@ -100,6 +97,9 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
     toast({ title: 'Exporting...', description: 'Please wait while we generate your PDF.' });
 
     try {
+        const { default: jsPDF } = await import('jspdf');
+        const { default: showdown } = await import('showdown');
+        
         const markdown = mindMapToMarkdown(idea.mindMap);
         const converter = new showdown.Converter();
         const html = converter.makeHtml(markdown);
