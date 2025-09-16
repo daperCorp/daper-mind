@@ -16,8 +16,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>('English');
 
   useEffect(() => {
-    // You could potentially persist this to localStorage
-    // For now, it defaults to English on each load
+    const userLang = navigator.language.toLowerCase();
+    if (userLang.startsWith('ko')) {
+      setLanguage('Korean');
+    } else {
+      setLanguage('English');
+    }
   }, []);
   
   const value = { language, setLanguage };
