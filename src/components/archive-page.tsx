@@ -72,7 +72,8 @@ function IdeaCard({ idea, onRegenerate }: { idea: GeneratedIdea, onRegenerate: (
     return (
         <Card className="relative flex flex-col hover:shadow-md transition-shadow">
             <FavoriteButton idea={idea} />
-            <Link href={`/idea/${idea.id}`} className="block flex-grow p-6">
+            <Link href={`/idea/${idea.id}`} className="block flex-grow">
+              <div className='p-6'>
                 <CardHeader className="p-0 mb-2">
                     <CardTitle className="line-clamp-2">{idea.title}</CardTitle>
                     <CardDescription>
@@ -82,14 +83,8 @@ function IdeaCard({ idea, onRegenerate }: { idea: GeneratedIdea, onRegenerate: (
                 <CardContent className="p-0">
                     <p className="text-muted-foreground line-clamp-3">{idea.summary}</p>
                 </CardContent>
+              </div>
             </Link>
-            <CardFooter className="flex flex-col items-start gap-2">
-                <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={isPending}>
-                    <BrainCircuit className="mr-2 h-4 w-4" />
-                    {t('regenerateMindMap')}
-                </Button>
-                {isPending && <Progress value={undefined} className="w-full h-1 animate-pulse" />}
-            </CardFooter>
         </Card>
     );
 }
