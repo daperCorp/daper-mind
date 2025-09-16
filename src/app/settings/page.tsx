@@ -1,72 +1,80 @@
 
 'use client';
 
-import { useAuth } from '@/context/auth-context';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { AccountSettings } from '@/components/settings/account-settings';
+import { PlanSettings } from '@/components/settings/plan-settings';
+import { LanguageSettings } from '@/components/settings/language-settings';
+import { ManageAccountSettings } from '@/components/settings/manage-account-settings';
 import { useLanguage } from '@/context/language-context';
 import { translations } from '@/lib/translations';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+
+type SettingsTab = 'account' | 'plan' | 'language' | 'manage';
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth();
-  const { language, setLanguage } = useLanguage();
+  const [activeTab, setActiveTab] = useState<SettingsTab>('account');
+  const { language } = useLanguage();
   const t = (key: keyof typeof translations) => translations[key][language];
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'account':
+        return <AccountSettings />;
+      case 'plan':
+        return <PlanSettings />;
+      case 'language':
+        return <LanguageSettings />;
+      case 'manage':
+        return <ManageAccountSettings />;
+      default:
+        return <AccountSettings />;
+    }
+  };
+
+  const menuItems = [
+    { id: 'account', label: t('myAccount') },
+    { id: 'plan', label: t('planDetails') },
+    { id: 'language', label: t('language') },
+    { id: 'manage', label: t('manageAccount') },
+  ];
+
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">{t('settings')}</h1>
-
-      <div className="space-y-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('myAccount')}</CardTitle>
-            <CardDescription>{user?.email}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>{user?.displayName}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('planDetails')}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex justify-between items-center">
-            <div>
-              <p className="font-semibold">{t('currentPlan')}</p>
-              <p>{t('free')}</p>
-            </div>
-            <Button onClick={() => { /* Navigate to upgrade page */ }}>{t('upgradePlan')}</Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('language')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Select value={language} onValueChange={(value) => setLanguage(value as 'English' | 'Korean')}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder={t('selectLanguage')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="English">{t('english')}</SelectItem>
-                <SelectItem value="Korean">{t('korean')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('manageAccount')}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col space-y-4">
-            <Button variant="outline">{t('contactSupport')}</Button>
-            <Button variant="destructive" onClick={logout}>{t('signOut')}</Button>
-          </CardContent>
-        </Card>
+    <div className="container mx-auto p-4 md:p-6 lg:p-8">
+        <div className="flex items-center gap-4 mb-6">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/">
+                    <ArrowLeft className="h-4 w-4" />
+                </Link>
+            </Button>
+            <h1 className="text-2xl font-bold">{t('settings')}</h1>
+        </div>
+        <div className="flex flex-col md:flex-row gap-8">
+            <aside className="w-full md:w-1/4 lg:w-1/5">
+            <nav className="flex flex-col space-y-2">
+                {menuItems.map((item) => (
+                    <Button
+                        key={item.id}
+                        variant="ghost"
+                        className={cn(
+                        'justify-start',
+                        activeTab === item.id && 'bg-accent text-accent-foreground'
+                        )}
+                        onClick={() => setActiveTab(item.id as SettingsTab)}
+                    >
+                        {item.label}
+                    </Button>
+                ))}
+            </nav>
+            </aside>
+            <main className="flex-1">
+                <div className="min-h-[400px]">
+                    {renderContent()}
+                </div>
+            </main>
       </div>
     </div>
   );

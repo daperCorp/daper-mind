@@ -11,6 +11,7 @@ export const translations: Translations = {
   // Common
   success: { English: 'Success', Korean: '성공' },
   error: { English: 'Error', Korean: '오류' },
+  cancel: { English: 'Cancel', Korean: '취소' },
   
   // Sidebar
   newIdea: { English: 'New Idea', Korean: '새 아이디어' },
@@ -33,9 +34,6 @@ export const translations: Translations = {
   archiveEmpty: { English: 'Your archive is empty. Generate some ideas to get started!', Korean: '보관함이 비어있습니다. 아이디어를 생성하여 시작해보세요!' },
   favoriteIdeas: { English: 'Favorite Ideas', Korean: '즐겨찾는 아이디어' },
   favoritesEmpty: { English: 'You have no favorites yet. Star an idea in the archive to see it here!', Korean: '즐겨찾는 아이디어가 없습니다. 보관함에서 아이디어에 별표를 표시하여 여기에 추가하세요!' },
-  regenerateMindMap: { English: 'Regenerate Mind Map', Korean: '마인드맵 재생성' },
-  mindMapRegenerated: { English: 'Mind map has been regenerated.', Korean: '마인드맵이 재생성되었습니다.' },
-
 
   // Idea Detail Page
   createdOn: { English: 'Created on', Korean: '작성일' },
@@ -80,10 +78,18 @@ export const translations: Translations = {
 
   // Settings Page
   myAccount: { English: 'My Account', Korean: '내 계정' },
-  planDetails: { English: 'Plan Details', Korean: '플랜 정보' },
+  accountDescription: { English: 'View and manage your account details.', Korean: '계정 정보를 보고 관리합니다.' },
+  planDetails: { English: 'Plan & Billing', Korean: '플랜 및 결제' },
+  planDescription: { English: 'View and manage your current plan and billing details.', Korean: '현재 플랜 및 결제 정보를 보고 관리합니다.' },
   currentPlan: { English: 'Current Plan', Korean: '현재 플랜' },
   free: { English: 'Free', Korean: '무료' },
   manageAccount: { English: 'Manage Account', Korean: '계정 관리' },
+  manageAccountDescription: { English: 'Manage your account settings and preferences.', Korean: '계정 설정 및 환경설정을 관리합니다.' },
   contactSupport: { English: 'Contact Support', Korean: '고객 지원팀에 문의' },
+  contactSupportDescription: { English: 'Get help with your account, billing, or any other questions.', Korean: '계정, 결제 또는 기타 질문에 대한 도움을 받으세요.' },
   signOut: { English: 'Sign Out', Korean: '로그아웃' },
+  signOutDescription: { English: 'Sign out of your account on this device.', Korean: '이 기기에서 계정에서 로그아웃합니다.' },
+  signOutConfirmTitle: { English: 'Are you sure you want to sign out?', Korean: '정말로 로그아웃하시겠습니까?' },
+  signOutConfirmDescription: { English: 'You will be returned to the login page.', Korean: '로그인 페이지로 돌아갑니다.' },
+  languageDescription: { English: 'Choose the language for the application interface.', Korean: '애플리케이션 인터페이스의 언어를 선택하세요.' },
 };
