@@ -46,7 +46,7 @@ function RecursiveAccordion({ nodes }: { nodes: OutlineNode[] }) {
   const singleItem = nodes.length === 1;
 
   return (
-    <Accordion type={singleItem ? "single" : "multiple"} collapsible={singleItem} className="w-full">
+    <Accordion type={singleItem ? "single" : "multiple"} {...(singleItem ? { collapsible: true } : {})} className="w-full">
       {nodes.map((node, index) => (
         <AccordionItem value={`item-${node.title}-${index}`} key={index} className="border-b-0">
           {node.children.length > 0 ? (
