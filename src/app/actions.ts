@@ -10,7 +10,6 @@ import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, getDocs, query, doc, getDoc, updateDoc, where, setDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
-import type { User } from 'firebase/auth';
 
 const IdeaSchema = z.object({
   idea: z.string().min(10, { message: 'Please provide a more detailed idea (at least 10 characters).' }),
@@ -23,7 +22,7 @@ export type GeneratedIdea = {
   title: string;
   summary: string;
   outline: string;
-  mindMap: MindMapNode;
+  mindMap?: MindMapNode;
   favorited?: boolean;
   createdAt?: Date;
   userId?: string;
@@ -70,18 +69,16 @@ export async function generateIdea(prevState: any, formData: FormData): Promise<
   const { idea: ideaDescription, userId, language } = validatedFields.data;
 
   try {
-    const [titleResult, summaryResult, outlineResult, mindMapResult] = await Promise.all([
+    const [titleResult, summaryResult, outlineResult] = await Promise.all([
       generateIdeaTitle({ ideaDescription, language }),
       generateIdeaSummary({ idea: ideaDescription, language }),
       generateIdeaOutline({ idea: ideaDescription, language }),
-      generateIdeaMindMap({ idea: ideaDescription, language }),
     ]);
 
     const newIdea: Omit<GeneratedIdea, 'id' | 'createdAt'> = {
         title: titleResult.ideaTitle,
         summary: summaryResult.summary,
         outline: outlineResult.outline,
-        mindMap: mindMapResult.mindMap,
         favorited: false,
         userId: userId,
         language: language,
@@ -230,15 +227,18 @@ export async function regenerateMindMap(ideaId: string, ideaSummary: string, lan
     }
 }
 
+export type SerializableUser = {
+    uid: string;
+    email: string | null;
+    displayName: string | null;
+    photoURL: string | null;
+};
 
-export async function upsertUser(user: User): Promise<{ error: string | null }> {
+export async function upsertUser(user: SerializableUser): Promise<{ error: string | null }> {
     try {
         const userRef = doc(db, 'users', user.uid);
         await setDoc(userRef, {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
+            ...user,
             lastLogin: serverTimestamp(),
         }, { merge: true });
         return { error: null };
@@ -427,3 +427,5 @@ export async function deleteMindMapNode(ideaId: string, nodePath: string): Promi
         return { success: false, error: error.message || 'Failed to delete node.' };
     }
 }
+
+    

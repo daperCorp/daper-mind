@@ -13,7 +13,7 @@ import {
   type User
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { upsertUser } from '@/app/actions';
+import { upsertUser, type SerializableUser } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
@@ -27,6 +27,19 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const handleUserUpsert = async (user: User) => {
+    const serializableUser: SerializableUser = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+    };
+    const { error } = await upsertUser(serializableUser);
+    if (error) {
+        throw new Error(error);
+    }
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -42,14 +55,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const handleSignIn = async (provider: GoogleAuthProvider) => {
+  const signInWithGoogle = async () => {
     try {
       setLoading(true);
-      const result = await signInWithPopup(auth, provider);
-      const { error } = await upsertUser(result.user);
-      if (error) {
-        throw new Error(error);
-      }
+      const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      await handleUserUpsert(result.user);
     } catch (error: any) {
       console.error("Authentication error:", error);
       toast({
@@ -61,30 +71,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
     }
   };
-
-  const signInWithGoogle = () => handleSignIn(new GoogleAuthProvider());
   
   const signUpWithEmail = async (email: string, pass: string) => {
     try {
         setLoading(true);
         const result = await createUserWithEmailAndPassword(auth, email, pass);
         
-        // Create a default display name from the email
         const displayName = email.split('@')[0];
         await updateProfile(result.user, { displayName });
 
-        // Manually create a user object to pass to upsertUser
-        const userToSave: User = {
-            ...result.user,
-            displayName: displayName,
-            photoURL: result.user.photoURL || null,
-        };
+        // We need to reload the user to get the updated profile
+        await result.user.reload();
+        const updatedUser = auth.currentUser;
 
-        const { error } = await upsertUser(userToSave);
-
-        if (error) {
-            throw new Error(error);
+        if (updatedUser) {
+            await handleUserUpsert(updatedUser);
+        } else {
+            throw new Error("Could not get updated user information.");
         }
+
     } catch (error: any) {
         console.error("Sign up error:", error);
         toast({
@@ -101,10 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
           setLoading(true);
           const result = await signInWithEmailAndPassword(auth, email, pass);
-          const { error } = await upsertUser(result.user);
-           if (error) {
-               throw new Error(error);
-           }
+          await handleUserUpsert(result.user);
           router.push('/');
       } catch (error: any) {
           console.error("Sign in error:", error);
@@ -148,3 +150,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    
