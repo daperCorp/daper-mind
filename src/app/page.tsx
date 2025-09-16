@@ -21,7 +21,6 @@ import { useAuth } from '@/context/auth-context';
 import { UserProfile } from '@/components/user-profile';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LanguageSelector } from '@/components/language-selector';
 import { useLanguage } from '@/context/language-context';
 import { translations } from '@/lib/translations';
 
@@ -88,7 +87,6 @@ export default function Home() {
                     <h1 className="text-lg font-semibold md:text-xl">{t('aiIdeaArchitect')}</h1>
                 </div>
                 <div className='flex items-center gap-4'>
-                    <LanguageSelector />
                     <UserProfile />
                 </div>
             </header>
