@@ -92,4 +92,5 @@ export const translations: Translations = {
   signOutConfirmTitle: { English: 'Are you sure you want to sign out?', Korean: '정말로 로그아웃하시겠습니까?' },
   signOutConfirmDescription: { English: 'You will be returned to the login page.', Korean: '로그인 페이지로 돌아갑니다.' },
   languageDescription: { English: 'Choose the language for the application interface.', Korean: '애플리케이션 인터페이스의 언어를 선택하세요.' },
+  privacyPolicy: { English: 'Privacy Policy', Korean: '개인정보 처리방침' },
 };

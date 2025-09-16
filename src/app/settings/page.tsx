@@ -8,12 +8,13 @@ import { AccountSettings } from '@/components/settings/account-settings';
 import { PlanSettings } from '@/components/settings/plan-settings';
 import { LanguageSettings } from '@/components/settings/language-settings';
 import { ManageAccountSettings } from '@/components/settings/manage-account-settings';
+import { PrivacyPolicy } from '@/components/settings/privacy-policy';
 import { useLanguage } from '@/context/language-context';
 import { translations } from '@/lib/translations';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
-type SettingsTab = 'account' | 'plan' | 'language' | 'manage';
+type SettingsTab = 'account' | 'plan' | 'language' | 'manage' | 'privacy';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('account');
@@ -30,6 +31,8 @@ export default function SettingsPage() {
         return <LanguageSettings />;
       case 'manage':
         return <ManageAccountSettings />;
+      case 'privacy':
+        return <PrivacyPolicy />;
       default:
         return <AccountSettings />;
     }
@@ -39,6 +42,7 @@ export default function SettingsPage() {
     { id: 'account', label: t('myAccount') },
     { id: 'plan', label: t('planDetails') },
     { id: 'language', label: t('language') },
+    { id: 'privacy', label: t('privacyPolicy') },
     { id: 'manage', label: t('manageAccount') },
   ];
 
