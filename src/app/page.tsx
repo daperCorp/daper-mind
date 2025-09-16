@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Archive, BrainCircuit, Plus, Star } from 'lucide-react';
 import {
   SidebarProvider,
@@ -33,18 +33,19 @@ export default function Home() {
 
   const t = (key: keyof typeof translations) => translations[key][language];
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [loading, user, router]);
+
+  if (loading || !user) {
     return (
         <div className="flex items-center justify-center h-screen">
             <Skeleton className="h-12 w-12 rounded-full" />
             <Skeleton className="h-4 w-32 ml-4" />
         </div>
     );
-  }
-
-  if (!user) {
-    router.push('/login');
-    return null;
   }
 
   return (
