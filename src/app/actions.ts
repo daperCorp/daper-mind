@@ -1,6 +1,7 @@
 
 'use server';
 
+import '@/ai'; // Import to register flows
 import { generateIdeaTitle } from '@/ai/flows/generate-idea-title';
 import { generateIdeaSummary } from '@/ai/flows/generate-idea-summary';
 import { generateIdeaOutline } from '@/ai/flows/generate-idea-outline';
