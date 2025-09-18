@@ -9,6 +9,7 @@ import { Plus, LoaderCircle, MoreVertical, BrainCircuit, Edit, Trash2 } from 'lu
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState, forwardRef } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Use a more specific name to avoid conflict with the component name
 type NodeData = MindMapNodeType & { children?: NodeData[] };
@@ -52,6 +53,7 @@ function MindMapNode({ node, level, path, isLast, onExpandNode, onAddNode, onEdi
   const [processingNode, setProcessingNode] = useState<string | null>(null);
   const hasChildren = node.children && node.children.length > 0;
   const cardColor = levelColors[level] || levelColors[levelColors.length - 1];
+  const isMobile = useIsMobile();
   
   const handleExpandClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -82,7 +84,7 @@ function MindMapNode({ node, level, path, isLast, onExpandNode, onAddNode, onEdi
       )}
 
       {/* Circle and Horizontal line */}
-      <div className="flex flex-col items-center self-stretch mr-4">
+      <div className={cn("flex flex-col items-center self-stretch", isMobile ? "mr-2" : "mr-4")}>
         <div
           className={cn(
             'w-5 h-5 rounded-full mt-[16px] border-2 bg-background',
@@ -127,7 +129,7 @@ function MindMapNode({ node, level, path, isLast, onExpandNode, onAddNode, onEdi
         </Card>
         
         {hasChildren && (
-          <div className="space-y-3 pl-4 border-l border-dashed ml-2.5">
+          <div className={cn("space-y-3 border-l border-dashed", isMobile ? "pl-2 ml-1.5" : "pl-4 ml-2.5")}>
              <AnimatePresence>
                 {node.children!.map((child, index) => (
                 <MindMapNode
@@ -158,7 +160,7 @@ export const MindMapDisplay = forwardRef<HTMLDivElement, MindMapDisplayProps>(
     }
 
     return (
-        <div ref={ref}>
+        <div ref={ref} className="overflow-x-auto">
             <div className="space-y-2 inline-block">
                 <MindMapNode 
                     node={mindMap}

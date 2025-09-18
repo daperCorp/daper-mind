@@ -54,6 +54,25 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
       notFound();
     } else {
       setIdea(data);
+      // If mindMap doesn't exist, generate it automatically
+      if (!data.mindMap) {
+        startTransition(async () => {
+          const { success, newMindMap, error: regenerateError } = await regenerateMindMap(data.id!, data.summary, data.language || 'English');
+          if (success && newMindMap) {
+            setIdea(prev => prev ? { ...prev, mindMap: newMindMap } : null);
+            toast({
+                title: "Success",
+                description: "Mind map has been generated.",
+            });
+          } else {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: regenerateError || "Failed to generate mind map automatically.",
+            });
+          }
+        });
+      }
     }
     if (showLoading) setLoading(false);
   };
@@ -280,7 +299,7 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
       </AlertDialog>
 
       <div className="flex flex-col h-screen bg-muted/40">
-        <header className="flex items-center justify-between p-4 border-b bg-background gap-4">
+        <header className="flex flex-wrap items-center justify-between p-4 border-b bg-background gap-4">
           <div className="flex items-center gap-4">
               <Button variant="outline" size="icon" asChild>
                   <Link href={`/idea/${idea.id}`}>
@@ -292,7 +311,7 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
                   <h1 className="text-lg font-semibold">{idea.title}</h1>
               </div>
           </div>
-          <div className='flex items-center gap-2'>
+          <div className='flex flex-wrap items-center gap-2'>
               <Button onClick={handleExportPdf} disabled={isExporting}>
                   {isExporting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                   Export as PDF
