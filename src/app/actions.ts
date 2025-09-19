@@ -70,11 +70,15 @@ export async function generateIdea(prevState: any, formData: FormData): Promise<
   const { idea: ideaDescription, userId, language } = validatedFields.data;
 
   try {
+    console.log('Attempting to generate idea components...');
     const [titleResult, summaryResult, outlineResult] = await Promise.all([
       generateIdeaTitle({ ideaDescription, language }),
       generateIdeaSummary({ idea: ideaDescription, language }),
       generateIdeaOutline({ idea: ideaDescription, language }),
     ]);
+    console.log('Title Result:', titleResult);
+    console.log('Summary Result:', summaryResult);
+    console.log('Outline Result:', outlineResult);
 
     const newIdea: Omit<GeneratedIdea, 'id' | 'createdAt'> = {
         title: titleResult.ideaTitle,
@@ -85,10 +89,12 @@ export async function generateIdea(prevState: any, formData: FormData): Promise<
         language: language,
     };
 
+    console.log('Attempting to add document to Firestore:', newIdea);
     const docRef = await addDoc(collection(db, "ideas"), {
       ...newIdea,
       createdAt: serverTimestamp(),
     });
+    console.log('Document added with ID:', docRef.id);
 
     revalidatePath('/');
     revalidatePath('/archive');
