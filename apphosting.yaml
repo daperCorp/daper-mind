@@ -1,7 +1,13 @@
-cat > apphosting.yaml << 'EOF'
+# Settings for Backend (on Cloud Run).
+# See https://firebase.google.com/docs/app-hosting/configure#cloud-run
 runConfig:
-  maxInstances: 1
+  minInstances: 0
+
+# Environment variables and secrets.
 env:
+  # Configure environment variables.
   - variable: GOOGLE_GENAI_API_KEY
     value: AIzaSyDCsln7hN32uhwhIno9VnTUVEXIQyJjJPs
-EOF
+    availability:
+      - BUILD
+      - RUNTIME
