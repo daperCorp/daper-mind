@@ -1,4 +1,0 @@
-cat > apphosting.yaml << 'EOF'
-runConfig:
-  maxInstances: 1
-EOF
