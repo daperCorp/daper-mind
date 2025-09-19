@@ -1,0 +1,4 @@
+runConfig:
+  maxInstances: 1
+env:
+  GOOGLE_GENAI_API_KEY: AIzaSyDCsln7hN32uhwhIno9VnTUVEXIQyJjJPs
