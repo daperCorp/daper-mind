@@ -1,11 +1,4 @@
 cat > apphosting.yaml << 'EOF'
 runConfig:
   maxInstances: 1
-env:
-  - variable: GOOGLE_GENAI_API_KEY
-    value: AIzaSyDCsln7hN32uhwhIno9VnTUVEXIQyJjJPs
-  - variable: GOOGLE_AI_API_KEY  
-    value: AIzaSyDCsln7hN32uhwhIno9VnTUVEXIQyJjJPs
-  - variable: API_KEY
-    value: AIzaSyDCsln7hN32uhwhIno9VnTUVEXIQyJjJPs
 EOF
