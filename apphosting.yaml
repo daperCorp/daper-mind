@@ -1,5 +1,8 @@
+# apphosting.yaml 수정
+cat > apphosting.yaml << 'EOF'
 runConfig:
   maxInstances: 1
-secretEnv:
-  - secret: GOOGLE_GENAI_API_KEY
-    env: GOOGLE_GENAI_API_KEY
+env:
+  - variable: GOOGLE_GENAI_API_KEY
+    value: AIzaSyDCsln7hN32uhwhIno9VnTUVEXIQyJjJPs
+EOF
