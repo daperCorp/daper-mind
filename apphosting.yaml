@@ -4,17 +4,8 @@ runConfig:
 env:
   - variable: GOOGLE_GENAI_API_KEY
     value: AIzaSyDCsln7hN32uhwhIno9VnTUVEXIQyJjJPs
-    availability:
-      - BUILD
-      - RUNTIME
-  - variable: GOOGLE_AI_API_KEY
+  - variable: GOOGLE_AI_API_KEY  
     value: AIzaSyDCsln7hN32uhwhIno9VnTUVEXIQyJjJPs
-    availability:
-      - BUILD
-      - RUNTIME
   - variable: API_KEY
     value: AIzaSyDCsln7hN32uhwhIno9VnTUVEXIQyJjJPs
-    availability:
-      - BUILD
-      - RUNTIME
 EOF
