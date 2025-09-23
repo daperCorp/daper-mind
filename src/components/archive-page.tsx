@@ -105,7 +105,7 @@ export function ArchivePage() {
     };
     async function fetchIdeas() {
       setLoading(true);
-      const { data, error } = await getArchivedIdeas(user.uid);
+      const { data, error } = await getArchivedIdeas(user!.uid);
       if (data) {
         const sortedData = data.sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;

@@ -2,22 +2,16 @@
 
 import React from "react";
 import Head from "next/head";
+import Navbar from "@/components/Navbar";
 import Link from "next/link";
-
+import IdeaHero from '@/components/idea-hero';
 export default function DaperLanding() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Daper",
     url: "https://www.dapercorp.com",
-    logo:
-      "https://github.com/kyutae96/daper-website/blob/master/assets/daper-logo.png",
+    logo: "https://github.com/kyutae96/daper-website/blob/master/assets/daper-logo.png",
   };
 
   return (
@@ -25,198 +19,59 @@ export default function DaperLanding() {
       <Head>
         <title>Daper - 소프트웨어 솔루션의 시작</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {/* Inter font */}
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
           rel="stylesheet"
         />
-        {/* JSON-LD */}
         <script
           type="application/ld+json"
-          // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        {/* CSS (원본 스타일 그대로) */}
         <style>{`
           body { font-family: 'Inter', sans-serif; }
-          .dot-pattern {
-            background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
-            background-size: 20px 20px; opacity: 0.3;
-          }
           .hero-dot { animation: pulse-dot 2s infinite; }
-          @keyframes pulse-dot {
-            0%, 100% { transform: scale(1); opacity: 0.7; }
-            50% { transform: scale(1.2); opacity: 1; }
-          }
-          .fade-in { animation: fadeIn 0.8s ease-in; }
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          .card-hover { transition: all 0.3s ease; }
-          .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-          .portfolio-image { background-size: cover; background-position: center; background-repeat: no-repeat; }
-          .portfolio-image.fallback { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-          /* Modal Styles */
-          .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
-                   background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); }
-          .modal.show { display: flex; align-items: center; justify-content: center; }
-          .modal-content { position: relative; width: 90%; height: 90%; background: white; border-radius: 16px; overflow: hidden;
-                           box-shadow: 0 25px 50px rgba(0,0,0,0.3); animation: modalFadeIn 0.3s ease-out; display: flex; flex-direction: column; }
-          @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.9) translateY(-20px); }
-                                   to { opacity: 1; transform: scale(1) translateY(0); } }
-          .modal-image-container { flex: 1; position: relative; overflow: hidden; background: #f8f9fa; }
-          .modal-image { width: 100%; height: 100%; object-fit: contain; display: block; }
-          .modal-info { padding: 24px; background: white; border-top: 1px solid #e5e7eb; flex-shrink: 0; }
-          .modal-navigation { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0, 0, 0, 0.7); color: white;
-                              border: none; border-radius: 50%; width: 50px; height: 50px; font-size: 24px; cursor: pointer;
-                              display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; z-index: 1001; }
-          .modal-navigation:hover { background: rgba(0, 0, 0, 0.9); transform: translateY(-50%) scale(1.1); }
-          .modal-prev { left: 20px; } .modal-next { right: 20px; }
-          .modal-indicators { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 1001; }
-          .modal-indicator { width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 255, 255, 0.5);
-                             cursor: pointer; transition: all 0.3s ease; }
-          .modal-indicator.active { background: white; transform: scale(1.2); }
-          .modal-close { position: absolute; top: 16px; right: 16px; background: rgba(0, 0, 0, 0.7); color: white; border: none;
-                         border-radius: 50%; width: 40px; height: 40px; font-size: 20px; cursor: pointer;
-                         display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; z-index: 1001; }
-          .modal-close:hover { background: rgba(0, 0, 0, 0.9); transform: scale(1.1); }
-          .gallery-item { cursor: pointer; transition: transform 0.3s ease; }
-          .gallery-item:hover { transform: scale(1.05); }
+          @keyframes pulse-dot { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.2);opacity:1} }
+          .fade-in { animation: fadeIn .8s ease-in; }
+          @keyframes fadeIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+          .card-hover { transition: all .3s ease; }
+          .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,.1); }
         `}</style>
       </Head>
 
       <div className="bg-gray-50 min-h-screen flex flex-col">
-        {/* Navigation */}
-        <nav className="fixed top-0 z-50 w-full bg-white shadow-sm">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex h-16 items-center justify-between">
-              <div className="flex items-center">
-                <div className="flex items-center">
-                  <img
-                    src="assets/daper-logo.png"
-                    alt="Daper 로고"
-                    className="mr-3 h-10"
-                  />
-                  <span className="text-2xl font-bold text-gray-900">Daper</span>
-                </div>
-              </div>
+        <Navbar />
 
-              <div className="hidden md:block">
-                <div className="ml-10 flex items-baseline space-x-8">
-                  <Link href="/login" className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-blue-600">
-                    로그인
-                  </Link>
-                  <Link href="/register" className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-blue-600">
-                    회원가입
-                  </Link>
-                </div>
-              </div>
-
-              <div className="md:hidden">
-                <button
-                  className="text-gray-600 hover:text-gray-900"
-                  aria-label="open menu"
-                  onClick={toggleMobileMenu}
-                >
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile Menu */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden">
-              <div className="space-y-1 px-2 pb-3 pt-2 sm:px-3">
-                <Link
-                  href="/login"
-                  className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
-                  onClick={toggleMobileMenu}
-                >
-                  로그인
-                </Link>
-                <Link
-                  href="/register"
-                  className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
-                  onClick={toggleMobileMenu}
-                >
-                  회원가입
-                </Link>
-              </div>
-            </div>
-          )}
-        </nav>
-
-        {/* Main Content */}
         <main className="flex-grow flex items-center justify-center p-4 pt-20">
           <div className="w-full max-w-2xl text-center">
             <div className="mb-8 flex justify-center">
-                <div className="relative">
-                  <div className="flex h-32 w-32 items-center justify-center rounded-full bg-white shadow-lg">
-                    <div className="hero-dot h-4 w-4 rounded-full bg-blue-600" />
-                  </div>
-                  <div className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-yellow-400 opacity-70" />
-                  <div className="absolute -bottom-3 -left-3 h-8 w-8 rounded-full bg-green-400 opacity-50" />
+              <div className="relative">
+                <div className="flex h-32 w-32 items-center justify-center rounded-full bg-white shadow-lg">
+                  <div className="hero-dot h-4 w-4 rounded-full bg-blue-600" />
                 </div>
+                <div className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-yellow-400 opacity-70" />
+                <div className="absolute -bottom-3 -left-3 h-8 w-8 rounded-full bg-green-400 opacity-50" />
+              </div>
             </div>
             <h1 className="fade-in mb-6 text-4xl font-bold text-gray-900 md:text-6xl">
-                아이디어의 시작,{" "}
-                <span className="text-blue-600">Daper</span>
+              아이디어의 시작, <span className="text-blue-600">Daper</span>
             </h1>
             <p className="fade-in mx-auto mb-8 max-w-3xl text-xl text-gray-600 md:text-2xl">
-                종이 위의 작은 점에서 시작되는 혁신적인 소프트웨어 솔루션
+              종이 위의 작은 점에서 시작되는 혁신적인 소프트웨어 솔루션
             </p>
             <p className="fade-in mx-auto mb-10 max-w-2xl text-lg text-gray-500">
-                Dot + Paper = Daper
-                <br />
-                모든 위대한 아이디어는 종이 위의 한 점에서 시작됩니다
+              Dot + Paper = Daper
+              <br />
+              모든 위대한 아이디어는 종이 위의 한 점에서 시작됩니다
             </p>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="예시: 퓨처 푸드 시스템 아이디어"
-                className="w-full px-6 py-4 border border-gray-300 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
-              />
-              <button
-                className="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-label="Search"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M17.293 17.293a1 1 0 01-1.414 0l-1.414-1.414a1 1 0 010-1.414l1.414-1.414a1 1 0 011.414 0l1.414 1.414a1 1 0 010 1.414z"
-                  ></path>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M11 19a8 8 0 100-16 8 8 0 000 16z"
-                  ></path>
-                </svg>
-              </button>
-            </div>
+           
+            <main className="flex-grow flex items-center justify-center p-4 pt-20">
+  <div className="w-full max-w-2xl text-center">
+    {}
+    {}
+    <IdeaHero />
+  </div>
+</main>
+
           </div>
         </main>
 
@@ -239,6 +94,7 @@ export default function DaperLanding() {
                   <svg
                     className="h-8 w-8 text-blue-600"
                     fill="none"
+                     stroke="currentColor"
                     viewBox="0 0 24 24"
                     aria-hidden
                   >
@@ -262,25 +118,24 @@ export default function DaperLanding() {
               {/* Card 2 */}
               <div className="card-hover rounded-xl bg-gray-50 p-8">
                 <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-lg bg-green-100">
-                  <svg
-                    className="h-8 w-8 text-green-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    aria-hidden
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
+                <svg 
+                className="w-8 h-8 text-green-600" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24">
+                <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth="2" 
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                </path>
+                <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth="2" 
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z">
+                </path>
+                </svg>
                 </div>
                 <h3 className="mb-4 text-xl font-semibold text-gray-900">
                   맞춤형 솔루션
@@ -297,6 +152,7 @@ export default function DaperLanding() {
                   <svg
                     className="h-8 w-8 text-purple-600"
                     fill="none"
+                     stroke="currentColor"
                     viewBox="0 0 24 24"
                     aria-hidden
                   >
@@ -384,6 +240,7 @@ export default function DaperLanding() {
                     <svg
                       className="h-6 w-6 text-blue-600"
                       fill="none"
+                       stroke="currentColor"
                       viewBox="0 0 24 24"
                       aria-hidden
                     >
@@ -412,6 +269,7 @@ export default function DaperLanding() {
                     <svg
                       className="h-6 w-6 text-blue-600"
                       fill="none"
+                       stroke="currentColor"
                       viewBox="0 0 24 24"
                       aria-hidden
                     >
@@ -434,6 +292,7 @@ export default function DaperLanding() {
                     <svg
                       className="h-6 w-6 text-blue-600"
                       fill="none"
+                      stroke="currentColor"
                       viewBox="0 0 24 24"
                       aria-hidden
                     >
@@ -505,10 +364,7 @@ export default function DaperLanding() {
                 <h4 className="mb-4 font-semibold">회사</h4>
                 <ul className="space-y-2 text-gray-400">
                   <li>
-                    <Link
-                      href="/privacy-policy"
-                      className="transition-colors hover:text-white"
-                    >
+                    <Link href="/privacy-policy" className="transition-colors hover:text-white">
                       개인정보처리방침
                     </Link>
                   </li>

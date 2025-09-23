@@ -1,10 +1,9 @@
-
 'use client';
+import { useLanguage } from '@/context/language-context';
+type Dict = 'English' | 'Korean';
 
-type Translations = {
-  [key: string]: {
-    [lang in 'English' | 'Korean']: string;
-  };
+export type Translations = {
+  [key: string]: Record<Dict, string>;
 };
 
 export const translations: Translations = {
@@ -12,7 +11,7 @@ export const translations: Translations = {
   success: { English: 'Success', Korean: '성공' },
   error: { English: 'Error', Korean: '오류' },
   cancel: { English: 'Cancel', Korean: '취소' },
-  
+
   // Sidebar
   newIdea: { English: 'New Idea', Korean: '새 아이디어' },
   archive: { English: 'Archive', Korean: '보관함' },
@@ -20,7 +19,7 @@ export const translations: Translations = {
 
   // Header
   aiIdeaArchitect: { English: 'AI Idea Architect', Korean: 'AI 아이디어 설계자' },
-  
+
   // Idea Architect Page
   describeYourIdea: { English: 'Describe your idea', Korean: '아이디어를 설명해주세요' },
   generating: { English: 'Generating...', Korean: '생성 중...' },
@@ -28,12 +27,18 @@ export const translations: Translations = {
   ideaOutline: { English: 'Idea Outline', Korean: '아이디어 개요' },
   summary: { English: 'Summary', Korean: '요약' },
   mindMap: { English: 'Mind Map', Korean: '마인드맵' },
-  
+
   // Archive & Favorites Page
   ideaArchive: { English: 'Idea Archive', Korean: '아이디어 보관함' },
-  archiveEmpty: { English: 'Your archive is empty. Generate some ideas to get started!', Korean: '보관함이 비어있습니다. 아이디어를 생성하여 시작해보세요!' },
+  archiveEmpty: {
+    English: 'Your archive is empty. Generate some ideas to get started!',
+    Korean: '보관함이 비어있습니다. 아이디어를 생성하여 시작해보세요!',
+  },
   favoriteIdeas: { English: 'Favorite Ideas', Korean: '즐겨찾는 아이디어' },
-  favoritesEmpty: { English: 'You have no favorites yet. Star an idea in the archive to see it here!', Korean: '즐겨찾는 아이디어가 없습니다. 보관함에서 아이디어에 별표를 표시하여 여기에 추가하세요!' },
+  favoritesEmpty: {
+    English: 'You have no favorites yet. Star an idea in the archive to see it here!',
+    Korean: '즐겨찾는 아이디어가 없습니다. 보관함에서 아이디어에 별표를 표시하여 여기에 추가하세요!',
+  },
 
   // Idea Detail Page
   createdOn: { English: 'Created on', Korean: '작성일' },
@@ -59,7 +64,10 @@ export const translations: Translations = {
 
   // Login Page
   login: { English: 'Login', Korean: '로그인' },
-  loginPrompt: { English: 'Enter your email below to login to your account.', Korean: '계정에 로그인하려면 아래에 이메일을 입력하세요.' },
+  loginPrompt: {
+    English: 'Enter your email below to login to your account.',
+    Korean: '계정에 로그인하려면 아래에 이메일을 입력하세요.',
+  },
   email: { English: 'Email', Korean: '이메일' },
   password: { English: 'Password', Korean: '비밀번호' },
   signIn: { English: 'Sign In', Korean: '로그인' },
@@ -80,13 +88,22 @@ export const translations: Translations = {
   myAccount: { English: 'My Account', Korean: '내 계정' },
   accountDescription: { English: 'View and manage your account details.', Korean: '계정 정보를 보고 관리합니다.' },
   planDetails: { English: 'Plan & Billing', Korean: '플랜 및 결제' },
-  planDescription: { English: 'View and manage your current plan and billing details.', Korean: '현재 플랜 및 결제 정보를 보고 관리합니다.' },
+  planDescription: {
+    English: 'View and manage your current plan and billing details.',
+    Korean: '현재 플랜 및 결제 정보를 보고 관리합니다.',
+  },
   currentPlan: { English: 'Current Plan', Korean: '현재 플랜' },
   free: { English: 'Free', Korean: '무료' },
   manageAccount: { English: 'Manage Account', Korean: '계정 관리' },
-  manageAccountDescription: { English: 'Manage your account settings and preferences.', Korean: '계정 설정 및 환경설정을 관리합니다.' },
+  manageAccountDescription: {
+    English: 'Manage your account settings and preferences.',
+    Korean: '계정 설정 및 환경설정을 관리합니다.',
+  },
   contactSupport: { English: 'Contact Support', Korean: '고객 지원팀에 문의' },
-  contactSupportDescription: { English: 'Get help with your account, billing, or any other questions.', Korean: '계정, 결제 또는 기타 질문에 대한 도움을 받으세요.' },
+  contactSupportDescription: {
+    English: 'Get help with your account, billing, or any other questions.',
+    Korean: '계정, 결제 또는 기타 질문에 대한 도움을 받으세요.',
+  },
   signOut: { English: 'Sign Out', Korean: '로그아웃' },
   signOutDescription: { English: 'Sign out of your account on this device.', Korean: '이 기기에서 계정에서 로그아웃합니다.' },
   signOutConfirmTitle: { English: 'Are you sure you want to sign out?', Korean: '정말로 로그아웃하시겠습니까?' },
@@ -94,3 +111,23 @@ export const translations: Translations = {
   languageDescription: { English: 'Choose the language for the application interface.', Korean: '애플리케이션 인터페이스의 언어를 선택하세요.' },
   privacyPolicy: { English: 'Privacy Policy', Korean: '개인정보 처리방침' },
 };
+
+// ✅ 언어코드 → 사전에 쓰는 키로 매핑
+const LANG_MAP: Record<string, Dict> = {
+  en: 'English',
+  ko: 'Korean',
+  English: 'English',
+  Korean: 'Korean',
+};
+
+// ✅ 안전한 번역 헬퍼
+export function translate(key: keyof typeof translations, language: string): string {
+  const lang = LANG_MAP[language] ?? 'English';
+  const entry = translations[key];
+  // 키가 없거나 해당 언어가 없을 때도 안전하게 처리
+  return entry?.[lang] ?? entry?.English ?? key;
+}
+export function useT() {
+  const { language } = useLanguage();
+  return (key: keyof typeof translations | string) => translate(key, language);
+}

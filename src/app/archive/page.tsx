@@ -1,14 +1,18 @@
-// src/app/upgrade/page.tsx
 'use client';
+
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
+import { ArchivePage } from '@/components/archive-page';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function UpgradePage() {
+export default function ArchiveRoutePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  useEffect(() => { if (!loading && !user) router.replace('/login'); }, [loading, user, router]);
+
+  useEffect(() => {
+    if (!loading && !user) router.replace('/login');
+  }, [loading, user, router]);
 
   if (loading || !user) {
     return (
@@ -20,9 +24,8 @@ export default function UpgradePage() {
   }
 
   return (
-    <main className="container mx-auto max-w-5xl p-4 pt-20">
-      <h1 className="text-2xl font-bold">Upgrade Plan</h1>
-      {/* 업그레이드 관련 UI */}
+    <main className="container max-w-5xl mx-auto p-4 pt-20">
+      <ArchivePage />
     </main>
   );
 }

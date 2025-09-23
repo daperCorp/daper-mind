@@ -103,7 +103,7 @@ export function FavoritesPage() {
     };
     async function fetchIdeas() {
       setLoading(true);
-      const { data, error } = await getFavoritedIdeas(user.uid);
+      const { data, error } = await getFavoritedIdeas(user!.uid);
       if (data) {
         const sortedData = data.sort((a, b) => {
             const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
