@@ -8,7 +8,7 @@ const firebaseConfig = {
   "appId": "1:1052737699941:web:8c754530fa0089ac38c68c",
   "storageBucket": "studio-4951261326-59af4.firebasestorage.app",
   "apiKey": "AIzaSyCk4_70Qgb6SLFQ4xjec7DaL11mnD42mWo",
-  "authDomain": "studio-4951261326-59af4.firebaseapp.com",
+  "authDomain": "daper-mind--studio-4951261326-59af4.asia-east1.hosted.app",
   "measurementId": "",
   "messagingSenderId": "1052737699941"
 };
