@@ -107,7 +107,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(true);
           const result = await signInWithEmailAndPassword(auth, email, pass);
           await handleUserUpsert(result.user);
-          router.push('/');
       } catch (error: any) {
           console.error("Sign in error:", error);
           toast({

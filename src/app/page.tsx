@@ -5,12 +5,6 @@ import Head from "next/head";
 import Link from "next/link";
 
 export default function DaperLanding() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -36,6 +30,54 @@ export default function DaperLanding() {
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        {/* CSS (원본 스타일 그대로) */}
+        <style>{`
+          body { font-family: 'Inter', sans-serif; }
+          .dot-pattern {
+            background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px; opacity: 0.3;
+          }
+          .hero-dot { animation: pulse-dot 2s infinite; }
+          @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.2); opacity: 1; }
+          }
+          .fade-in { animation: fadeIn 0.8s ease-in; }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .card-hover { transition: all 0.3s ease; }
+          .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+          .portfolio-image { background-size: cover; background-position: center; background-repeat: no-repeat; }
+          .portfolio-image.fallback { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+          /* Modal Styles */
+          .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+                   background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); }
+          .modal.show { display: flex; align-items: center; justify-content: center; }
+          .modal-content { position: relative; width: 90%; height: 90%; background: white; border-radius: 16px; overflow: hidden;
+                           box-shadow: 0 25px 50px rgba(0,0,0,0.3); animation: modalFadeIn 0.3s ease-out; display: flex; flex-direction: column; }
+          @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.9) translateY(-20px); }
+                                   to { opacity: 1; transform: scale(1) translateY(0); } }
+          .modal-image-container { flex: 1; position: relative; overflow: hidden; background: #f8f9fa; }
+          .modal-image { width: 100%; height: 100%; object-fit: contain; display: block; }
+          .modal-info { padding: 24px; background: white; border-top: 1px solid #e5e7eb; flex-shrink: 0; }
+          .modal-navigation { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0, 0, 0, 0.7); color: white;
+                              border: none; border-radius: 50%; width: 50px; height: 50px; font-size: 24px; cursor: pointer;
+                              display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; z-index: 1001; }
+          .modal-navigation:hover { background: rgba(0, 0, 0, 0.9); transform: translateY(-50%) scale(1.1); }
+          .modal-prev { left: 20px; } .modal-next { right: 20px; }
+          .modal-indicators { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 1001; }
+          .modal-indicator { width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 255, 255, 0.5);
+                             cursor: pointer; transition: all 0.3s ease; }
+          .modal-indicator.active { background: white; transform: scale(1.2); }
+          .modal-close { position: absolute; top: 16px; right: 16px; background: rgba(0, 0, 0, 0.7); color: white; border: none;
+                         border-radius: 50%; width: 40px; height: 40px; font-size: 20px; cursor: pointer;
+                         display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; z-index: 1001; }
+          .modal-close:hover { background: rgba(0, 0, 0, 0.9); transform: scale(1.1); }
+          .gallery-item { cursor: pointer; transition: transform 0.3s ease; }
+          .gallery-item:hover { transform: scale(1.05); }
+        `}</style>
       </Head>
 
       <div className="bg-gray-50 min-h-screen flex flex-col">
@@ -69,7 +111,6 @@ export default function DaperLanding() {
                 <button
                   className="text-gray-600 hover:text-gray-900"
                   aria-label="open menu"
-                  onClick={toggleMobileMenu}
                 >
                   <svg
                     className="h-6 w-6"
@@ -89,28 +130,6 @@ export default function DaperLanding() {
               </div>
             </div>
           </div>
-
-          {/* Mobile Menu */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden">
-              <div className="space-y-1 px-2 pb-3 pt-2 sm:px-3">
-                <Link
-                  href="/login"
-                  className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
-                  onClick={toggleMobileMenu}
-                >
-                  로그인
-                </Link>
-                <Link
-                  href="/register"
-                  className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
-                  onClick={toggleMobileMenu}
-                >
-                  회원가입
-                </Link>
-              </div>
-            </div>
-          )}
         </nav>
 
         {/* Main Content */}
@@ -428,7 +447,7 @@ export default function DaperLanding() {
                     alt="Daper 로고"
                     className="mr-3 h-10"
                   />
-                  <span className="text-2xl font-bold">Daper</span>
+                  <span className="text-2xl font-bold text-gray-900">Daper</span>
                 </div>
                 <p className="mb-4 text-gray-400">
                   종이 위의 작은 점에서 시작되는 혁신적인 소프트웨어 솔루션
