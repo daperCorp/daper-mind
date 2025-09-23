@@ -5,6 +5,12 @@ import Head from "next/head";
 import Link from "next/link";
 
 export default function DaperLanding() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -111,6 +117,7 @@ export default function DaperLanding() {
                 <button
                   className="text-gray-600 hover:text-gray-900"
                   aria-label="open menu"
+                  onClick={toggleMobileMenu}
                 >
                   <svg
                     className="h-6 w-6"
@@ -130,6 +137,28 @@ export default function DaperLanding() {
               </div>
             </div>
           </div>
+
+          {/* Mobile Menu */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden">
+              <div className="space-y-1 px-2 pb-3 pt-2 sm:px-3">
+                <Link
+                  href="/login"
+                  className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+                  onClick={toggleMobileMenu}
+                >
+                  로그인
+                </Link>
+                <Link
+                  href="/register"
+                  className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+                  onClick={toggleMobileMenu}
+                >
+                  회원가입
+                </Link>
+              </div>
+            </div>
+          )}
         </nav>
 
         {/* Main Content */}
@@ -210,7 +239,6 @@ export default function DaperLanding() {
                   <svg
                     className="h-8 w-8 text-blue-600"
                     fill="none"
-                    stroke="currentColor"
                     viewBox="0 0 24 24"
                     aria-hidden
                   >
@@ -237,7 +265,6 @@ export default function DaperLanding() {
                   <svg
                     className="h-8 w-8 text-green-600"
                     fill="none"
-                    stroke="currentColor"
                     viewBox="0 0 24 24"
                     aria-hidden
                   >
@@ -270,7 +297,6 @@ export default function DaperLanding() {
                   <svg
                     className="h-8 w-8 text-purple-600"
                     fill="none"
-                    stroke="currentColor"
                     viewBox="0 0 24 24"
                     aria-hidden
                   >
@@ -358,7 +384,6 @@ export default function DaperLanding() {
                     <svg
                       className="h-6 w-6 text-blue-600"
                       fill="none"
-                      stroke="currentColor"
                       viewBox="0 0 24 24"
                       aria-hidden
                     >
@@ -387,7 +412,6 @@ export default function DaperLanding() {
                     <svg
                       className="h-6 w-6 text-blue-600"
                       fill="none"
-                      stroke="currentColor"
                       viewBox="0 0 24 24"
                       aria-hidden
                     >
@@ -410,7 +434,6 @@ export default function DaperLanding() {
                     <svg
                       className="h-6 w-6 text-blue-600"
                       fill="none"
-                      stroke="currentColor"
                       viewBox="0 0 24 24"
                       aria-hidden
                     >
