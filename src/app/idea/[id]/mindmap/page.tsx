@@ -182,7 +182,9 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
         const { default: showdown } = await import('showdown');
         const { default: html2canvas } = await import('html2canvas');
 
-        const markdown = mindMapToMarkdown(idea.mindMap);
+        const markdown = idea?.mindMap
+        ? mindMapToMarkdown(idea.mindMap)
+        : '# No mind map available';
         const converter = new showdown.Converter();
         const html = converter.makeHtml(markdown);
 
