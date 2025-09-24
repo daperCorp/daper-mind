@@ -182,7 +182,7 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
         const { default: showdown } = await import('showdown');
         const { default: html2canvas } = await import('html2canvas');
 
-        const markdown = idea?.mindMap
+        const markdown = idea.mindMap
         ? mindMapToMarkdown(idea.mindMap)
         : '# No mind map available';
         const converter = new showdown.Converter();
@@ -324,17 +324,25 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
               </Button>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-4 md:p-8">
-          <MindMapDisplay
-            ref={mindMapRef}
-            mindMap={idea.mindMap}
-            onExpandNode={handleExpandNode}
-            onAddNode={handleOpenDialog}
-            onEditNode={handleOpenDialog}
-            onDeleteNode={handleOpenDeleteDialog}
-            isProcessing={isPending}
-          />
-        </main>
+        // ...중략
+<main className="flex-1 overflow-auto p-4 md:p-8">
+  {idea.mindMap ? (
+    <MindMapDisplay
+      ref={mindMapRef}
+      mindMap={idea.mindMap}  // 이제 타입 OK
+      onExpandNode={handleExpandNode}
+      onAddNode={handleOpenDialog}
+      onEditNode={handleOpenDialog}
+      onDeleteNode={handleOpenDeleteDialog}
+      isProcessing={isPending}
+    />
+  ) : (
+    <div className="grid place-items-center h-[60vh] text-muted-foreground">
+      Generating mind map…
+    </div>
+  )}
+</main>
+
       </div>
     </>
   );

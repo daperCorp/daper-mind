@@ -29,14 +29,12 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         {/* ✅ useSearchParams 사용하는 어떤 컴포넌트/Provider도 이 경계 안에 들어오게 */}
-        <Suspense fallback={null}>
           <AuthProvider>
             <LanguageProvider>
               {children}
               <Toaster />
             </LanguageProvider>
           </AuthProvider>
-        </Suspense>
       </body>
     </html>
   );

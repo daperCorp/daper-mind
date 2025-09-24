@@ -55,11 +55,10 @@ function MindMapNode({ node, level, path, isLast, onExpandNode, onAddNode, onEdi
   const cardColor = levelColors[level] || levelColors[levelColors.length - 1];
   const isMobile = useIsMobile();
   
-  const handleExpandClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleExpandClick = () => {
     setProcessingNode(path);
     onExpandNode(path, node.children || []).finally(() => {
-        setProcessingNode(null);
+      setProcessingNode(null);
     });
   };
 
@@ -105,10 +104,15 @@ function MindMapNode({ node, level, path, isLast, onExpandNode, onAddNode, onEdi
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleExpandClick(new MouseEvent('click'))}>
-                            <BrainCircuit className="mr-2 h-4 w-4" />
-                            <span>Add with AI</span>
-                        </DropdownMenuItem>
+                    <DropdownMenuItem
+  onClick={(e) => {
+    e.stopPropagation();     // 여기서 전파 막기
+    handleExpandClick();     // 이벤트 인자 없이 호출
+  }}
+>
+  <BrainCircuit className="mr-2 h-4 w-4" />
+  <span>Add with AI</span>
+</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => onAddNode('add', path)}>
                             <Plus className="mr-2 h-4 w-4" />
                             <span>Add Manually</span>
