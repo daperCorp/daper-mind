@@ -273,32 +273,37 @@ function IdeaCard({
 
   return (
     <Card className="group relative h-full transition-all duration-200 border bg-card hover:shadow-lg hover:-translate-y-0.5">
-      {/* 카드 링크 - 버튼 영역 제외 */}
-      <Link href={`/idea/${idea.id}`} className="absolute inset-0 z-0" />
-      
-      {/* 액션 버튼들 - 상대적으로 높은 z-index */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      {/* ✅ 카드 전역 클릭 링크: 최상단으로 올림 */}
+      <Link
+        href={`/idea/${idea.id}`}
+        className="absolute inset-0 z-10"
+        aria-label={idea.title || 'Open idea'}
+      />
+
+      {/* 액션 버튼들: 링크보다 더 위로 */}
+      <div className="absolute top-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto">
         <div className="flex items-center gap-1 rounded-md bg-white/90 backdrop-blur-sm shadow-sm border border-gray-200/50 p-1">
-          <FavoriteButton idea={idea} compact />
-          
-          {/* 더보기 드롭다운 메뉴 */}
+          <div
+            className="pointer-events-auto"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          >
+            <FavoriteButton idea={idea} compact />
+          </div>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 px-2 text-muted-foreground hover:text-foreground transition-colors"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
+                className="h-8 px-2 text-muted-foreground hover:text-foreground transition-colors pointer-events-auto"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
               >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem
-                onClick={handleRegenerate}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRegenerate(e as any); }}
                 disabled={isPending}
                 className="cursor-pointer"
               >
@@ -307,10 +312,7 @@ function IdeaCard({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 className="cursor-pointer text-destructive focus:text-destructive"
               >
                 <DeleteButton ideaId={idea.id!} onDeleted={onDeleted} compact />
@@ -321,18 +323,16 @@ function IdeaCard({
         </div>
       </div>
 
-      {/* 카드 내용 - 적절한 패딩으로 버튼과 겹침 방지 */}
-      <div className={cn('relative z-0', dense ? 'p-4' : 'p-5')}>
-        <div className={cn('space-y-3 pr-20')}> {/* 우측 여백으로 버튼 영역 확보 */}
+      {/* ✅ 내용은 기본적으로 클릭 안 받게 */}
+      <div className={cn('relative z-0 pointer-events-none', dense ? 'p-4' : 'p-5')}>
+        <div className={cn('space-y-3 pr-20')}>
           <CardHeader className="p-0">
             <div className="flex items-start gap-2">
-              <div className="flex-1 min-w-0"> {/* min-w-0으로 텍스트 오버플로우 처리 */}
+              <div className="flex-1 min-w-0">
                 <CardTitle
                   className={cn(
                     'tracking-tight leading-tight',
-                    dense
-                      ? 'text-base md:text-lg line-clamp-2'
-                      : 'text-lg md:text-xl line-clamp-2',
+                    dense ? 'text-base md:text-lg line-clamp-2' : 'text-lg md:text-xl line-clamp-2',
                   )}
                   title={idea.title}
                 >
@@ -340,7 +340,7 @@ function IdeaCard({
                 </CardTitle>
               </div>
             </div>
-            
+
             <CardDescription className="flex items-center gap-2 mt-2 text-xs md:text-sm">
               <Calendar className="h-3 w-3 opacity-70" />
               <span>{formatDate(idea.createdAt)}</span>
@@ -354,22 +354,14 @@ function IdeaCard({
           </CardHeader>
 
           <CardContent className="p-0">
-            <p
-              className={cn(
-                'text-muted-foreground leading-relaxed',
-                dense
-                  ? 'text-sm line-clamp-2'
-                  : 'text-[15px] line-clamp-3',
-              )}
-            >
+            <p className={cn('text-muted-foreground leading-relaxed', dense ? 'text-sm line-clamp-2' : 'text-[15px] line-clamp-3')}>
               {idea.summary}
             </p>
           </CardContent>
         </div>
       </div>
 
-      {/* 하단 상태 표시 */}
-      <div className="absolute bottom-3 left-5 right-20 z-0">
+      <div className="absolute bottom-3 left-5 right-20 z-0 pointer-events-none">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             {idea.favorited && (

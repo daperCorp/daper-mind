@@ -114,35 +114,41 @@ useEffect(() => {
   };
 
   // 생성 결과 처리 + 로컬 사용량 감소(무료일 때)
-  useEffect(() => {
-    if (pending && (state.error || state.data)) {
-      setPending(false);
-    }
+  // 컴포넌트 상단
+const lastShownIdRef = useRef<string | null>(null);
 
-    if (state.error) {
-      console.error('Generation error:', state.error); // 디버깅 로그
-      toast({ variant: 'destructive', title: t('error'), description: state.error });
-      // 🔹 에러 시에도 새로운 requestId 생성 (재시도 가능하도록)
-      requestIdRef.current = generateRequestId();
-    }
-    
-    if (state.data) {
-      console.log('Generation successful:', state.data.id); // 디버깅 로그
-      setResult(state.data);
-      setIdea('');
-      formRef.current?.reset();
-      setOpen(true);
-      
-      // 🔹 성공 후 새로운 requestId 생성
-      requestIdRef.current = generateRequestId();
+// 결과 처리 effect 수정
+useEffect(() => {
+  const id = state.data?.id ?? null;
 
-      // 무료 유저면 로컬 카운터 감소 (최소 0 유지)
-      if (role === 'free') {
-        setDailyLeft((prev) => (typeof prev === 'number' ? Math.max(0, prev - 1) : prev));
-        setIdeasLeft((prev) => (typeof prev === 'number' ? Math.max(0, prev - 1) : prev));
-      }
+  // 결과/에러로 pending 해제
+  if (pending && (state.error || id)) {
+    setPending(false);
+  }
+
+  if (state.error) {
+    console.error('Generation error:', state.error);
+    toast({ variant: 'destructive', title: t('error'), description: state.error });
+    requestIdRef.current = generateRequestId();
+    return; // 에러면 종료
+  }
+
+  // ✅ 새로운 결과 id일 때만 다이얼로그 열기
+  if (id && lastShownIdRef.current !== id) {
+    lastShownIdRef.current = id;
+    setResult(state.data);
+    setIdea('');
+    formRef.current?.reset();
+    setOpen(true);
+    requestIdRef.current = generateRequestId();
+
+    if (role === 'free') {
+      setDailyLeft(prev => (typeof prev === 'number' ? Math.max(0, prev - 1) : prev));
+      setIdeasLeft(prev => (typeof prev === 'number' ? Math.max(0, prev - 1) : prev));
     }
-  }, [state, toast, pending, role, t]);
+  }
+}, [state]); // ✅ 오직 state만
+
 
   // 다이얼로그 닫기 핸들러
   const handleDialogClose = (isOpen: boolean) => {
@@ -301,7 +307,6 @@ useEffect(() => {
                 
                 <input type="hidden" name="userId" value={user?.uid ?? ''} />
                 <input type="hidden" name="language" value={language} />
-                // hidden input 정의 부분
 <input type="hidden" name="requestId" ref={requestIdInputRef} defaultValue={requestIdRef.current} />
 
                 

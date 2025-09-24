@@ -255,13 +255,22 @@ function IdeaCard({
 
   return (
     <Card className="group relative h-full transition-all duration-200 border bg-card hover:shadow-lg hover:-translate-y-0.5">
-      {/* 카드 링크 */}
-      <Link href={`/idea/${idea.id}`} className="absolute inset-0 z-0" />
+      {/* ✅ 카드 전역 클릭 링크: 최상단으로 올림 */}
+      <Link
+       href={`/idea/${idea.id}`}        className="absolute inset-0 z-10"
+       aria-label={idea.title || 'Open idea'}
+      />
       
-      {/* 액션 버튼들 - 호버 시 표시 */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        <div className="flex items-center gap-1 rounded-md bg-white/90 backdrop-blur-sm shadow-sm border border-gray-200/50 p-1">
-          <FavoriteButton idea={idea} onUnfavorite={onUnfavorite} compact />
+     {/* 액션 버튼들 - 호버 시 표시 */}
+      <div className="absolute top-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto">
+         <div className="flex items-center gap-1 rounded-md bg-white/90 backdrop-blur-sm shadow-sm border border-gray-200/50 p-1">    
+                   {/* 버튼들은 클릭 먹도록 auto */}
+          <div
+            className="pointer-events-auto"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          >
+            <FavoriteButton idea={idea} onUnfavorite={onUnfavorite} compact />
+          </div>
           
           {/* 더보기 드롭다운 메뉴 */}
           <DropdownMenu>
@@ -269,7 +278,7 @@ function IdeaCard({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 px-2 text-muted-foreground hover:text-foreground transition-colors"
+                className="h-8 px-2 text-muted-foreground hover:text-foreground transition-colors pointer-events-auto"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -279,15 +288,15 @@ function IdeaCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                onClick={handleRegenerate}
+              {/* <DropdownMenuItem
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRegenerate(e as any); }}
                 disabled={isPending}
                 className="cursor-pointer"
               >
                 <BrainCircuit className="mr-2 h-4 w-4" />
                 {isPending ? t('regenerating') : t('regenerateMindMap')}
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator /> */}
               <DropdownMenuItem
                 onClick={(e) => {
                   e.preventDefault();
@@ -308,7 +317,7 @@ function IdeaCard({
       </div>
 
       {/* 즐겨찾기 표시 배지 */}
-      <div className="absolute top-3 left-3 z-10">
+      <div className="absolute top-3 left-3 z-20 pointer-events-none">
         <div className="inline-flex items-center gap-1 rounded-full bg-yellow-100/90 text-yellow-700 border border-yellow-200/60 px-2 py-1 text-xs font-medium backdrop-blur-sm">
           <Star className="h-3 w-3 fill-current" />
           <span>{t('favorite')}</span>
@@ -316,7 +325,7 @@ function IdeaCard({
       </div>
 
       {/* 카드 내용 */}
-      <div className={cn('relative z-0', dense ? 'p-4 pt-12' : 'p-5 pt-14')}>
+      <div className={cn('relative z-0 pointer-events-none', dense ? 'p-4 pt-12' : 'p-5 pt-14')}>
         <div className={cn('space-y-3 pr-20')}> {/* 버튼 영역 확보 */}
           <CardHeader className="p-0">
             <div className="flex items-start gap-2">
