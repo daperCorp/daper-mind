@@ -50,7 +50,8 @@ export default function IdeaHero() {
   
   // 🔹 초기값으로 requestId 생성
   const requestIdRef = useRef<string>(generateRequestId());
-  
+  const requestIdInputRef = useRef<HTMLInputElement>(null); // ✅ 추가
+
   const { toast } = useToast();
   const { user } = useAuth();
   const { language } = useLanguage();
@@ -64,29 +65,35 @@ export default function IdeaHero() {
   const [ideasLeft, setIdeasLeft] = useState<number | null>(null);
 
   // 로그인 상태 변화 시 사용량 불러오기
-  useEffect(() => {
-    let mounted = true;
-    async function loadUsage() {
-      if (!user?.uid) {
-        setRole(null);
-        setDailyLeft(null);
-        setIdeasLeft(null);
-        return;
-      }
-      setUsageLoading(true);
-      const res = await getUserUsage(user.uid);
-      if (!mounted) return;
-      if (res.error) {
-        console.error(res.error);
-      }
-      setRole(res.role);
-      setDailyLeft(res.dailyLeft);
-      setIdeasLeft(res.ideasLeft);
-      setUsageLoading(false);
-    }
-    loadUsage();
-    return () => { mounted = false; };
-  }, [user]);
+  const uid = user?.uid ?? null;
+const loadingUsageRef = useRef(false);
+
+useEffect(() => {
+  if (!uid) {
+    setRole(null);
+    setDailyLeft(null);
+    setIdeasLeft(null);
+    return;
+  }
+  if (loadingUsageRef.current) return; // ✅ 중복 호출 가드
+
+  loadingUsageRef.current = true;
+  let alive = true;
+
+  (async () => {
+    setUsageLoading(true);
+    const res = await getUserUsage(uid);
+    if (!alive) return;               // 언마운트/uid 변경 레이스 방지
+    if (res.error) console.error(res.error);
+    setRole(res.role);
+    setDailyLeft(res.dailyLeft);
+    setIdeasLeft(res.ideasLeft);
+    setUsageLoading(false);
+    loadingUsageRef.current = false;
+  })();
+
+  return () => { alive = false; };
+}, [uid]); // ✅ uid만 의존
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     if (!user) {
@@ -97,6 +104,10 @@ export default function IdeaHero() {
     
     // 🔹 폼 제출 시마다 새로운 requestId 생성
     requestIdRef.current = generateRequestId();
+    if (requestIdInputRef.current) {
+      requestIdInputRef.current.value = requestIdRef.current;
+    }
+  
     setPending(true);
     
     console.log('Form submitted with requestId:', requestIdRef.current); // 디버깅 로그
@@ -290,7 +301,9 @@ export default function IdeaHero() {
                 
                 <input type="hidden" name="userId" value={user?.uid ?? ''} />
                 <input type="hidden" name="language" value={language} />
-                <input type="hidden" name="requestId" value={requestIdRef.current} />
+                // hidden input 정의 부분
+<input type="hidden" name="requestId" ref={requestIdInputRef} defaultValue={requestIdRef.current} />
+
                 
                 {/* 제출 버튼 */}
                 <Button
@@ -372,52 +385,50 @@ export default function IdeaHero() {
   
       {/* 로딩 오버레이 */}
       {pending && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md">
-          <div className="relative">
-            {/* 메인 로딩 애니메이션 */}
-            <div className="relative w-24 h-24 mb-6">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 opacity-20 animate-pulse"></div>
-              <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-30 animate-spin"></div>
-              <div className="absolute inset-4 rounded-full bg-white flex items-center justify-center">
-                <Sparkles className="h-8 w-8 text-blue-600 animate-pulse" />
-              </div>
-            </div>
-            
-            {/* 텍스트와 프로그레스 */}
-            <div className="text-center space-y-4">
-              <div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">
-                  {t('generatingYourIdea')}
-                </h3>
-                <p className="text-sm text-gray-600 max-w-md">
-                  {t('aiCraftingDetails')}
-                </p>
-              </div>
-              
-              {/* 프로그레스 단계 표시 */}
-              <div className="flex items-center justify-center space-x-4 text-xs">
-                <div className="flex items-center gap-2 text-blue-600">
-                  <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
-                  <span>{t('analyzing')}</span>
-                </div>
-                <div className="w-8 h-px bg-gray-300"></div>
-                <div className="flex items-center gap-2 text-gray-400">
-                  <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-                  <span>{t('structuring')}</span>
-                </div>
-                <div className="w-8 h-px bg-gray-300"></div>
-                <div className="flex items-center gap-2 text-gray-400">
-                  <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-                  <span>{t('finalizing')}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* 배경 패턴 */}
-          <div className="absolute inset-0 opacity-5 bg-gradient-to-br from-blue-50 to-purple-50"></div>
+  <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md">
+    {/* 배경 패턴 */}
+    <div className="absolute inset-0 z-0 opacity-5 bg-gradient-to-br from-blue-50 to-purple-50"></div>
+
+    {/* 메인 로딩 애니메이션 */}
+    <div className="relative z-10 w-24 h-24 mb-6">
+      <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 opacity-20 animate-pulse"></div>
+      <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-30 animate-spin"></div>
+      <div className="absolute inset-4 rounded-full bg-white flex items-center justify-center">
+        <Sparkles className="h-8 w-8 text-blue-600 animate-pulse" />
+      </div>
+    </div>
+
+    {/* 텍스트와 프로그레스 */}
+    <div className="relative z-10 text-center space-y-4">
+      <div>
+        <h3 className="text-xl font-bold text-gray-800 mb-2">
+          {t('generatingYourIdea')}
+        </h3>
+        <p className="text-sm text-gray-600 max-w-md">
+          {t('aiCraftingDetails')}
+        </p>
+      </div>
+
+      <div className="flex items-center justify-center space-x-4 text-xs">
+        <div className="flex items-center gap-2 text-blue-600">
+          <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
+          <span>{t('analyzing')}</span>
         </div>
-      )}
+        <div className="w-8 h-px bg-gray-300"></div>
+        <div className="flex items-center gap-2 text-gray-400">
+          <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+          <span>{t('structuring')}</span>
+        </div>
+        <div className="w-8 h-px bg-gray-300"></div>
+        <div className="flex items-center gap-2 text-gray-400">
+          <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+          <span>{t('finalizing')}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
 
       {/* 결과 다이얼로그 */}
       <Dialog open={open} onOpenChange={handleDialogClose}>

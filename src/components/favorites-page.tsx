@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition, useMemo } from 'react';
+import { useEffect, useState, useTransition, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { BrainCircuit, Star, Calendar, MoreHorizontal, Trash2, ArrowUpDown, LayoutGrid, Rows3 } from 'lucide-react';
 import { getFavoritedIdeas, regenerateMindMap, toggleFavorite, deleteIdea, type GeneratedIdea } from '@/app/actions';
@@ -376,53 +376,53 @@ export function FavoritesPage() {
   const [q, setQ] = useState('');
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const { user } = useAuth();
-  const { toast } = useToast();
   const t = useT();
+  const { toast } = useToast();
+  
+  // ✅ 의존성에 쓸 원시값만
+  const uid = user?.uid ?? null;
+
+  // ✅ 중복 호출 가드 + 레이스 방지 토큰
+  const isFetchingRef = useRef(false);
+  const fetchTokenRef = useRef(0);
 
   useEffect(() => {
-    if (!user?.uid) {
-      console.log('Favorites: No user found, stopping load. User state:', user); // 디버깅 로그
+    if (!uid) {                // 로그인 안 됨 → 종료
       setLoading(false);
       return;
     }
-    
-    async function fetchIdeas() {
-      console.log('Favorites: Starting to fetch ideas for user:', user?.uid); // 안전한 접근
-      
-      // 추가 null 체크
-      if (!user?.uid) {
-        console.log('Favorites: User became null during fetch, aborting');
-        setLoading(false);
-        return;
-      }
-      
-      setLoading(true);
-      setError(null);
-      
+
+    if (isFetchingRef.current) // 진행 중이면 중복 실행 차단
+      return;
+
+    isFetchingRef.current = true;
+    const myToken = ++fetchTokenRef.current; // 최신 요청 토큰
+    setLoading(true);
+    setError(null);
+
+    (async () => {
       try {
-        console.log('Favorites: Calling getFavoritedIdeas...'); // 디버깅 로그
-        const { data, error } = await getFavoritedIdeas(user.uid);
-        console.log('Favorites: Received response:', { dataCount: data?.length || 0, error }); // 디버깅 로그
-        
-        if (data) {
-          setIdeas(data);
-          console.log('Favorites: Ideas set successfully:', data.length); // 디버깅 로그
-        }
-        if (error) {
-          console.error('Favorites: Server error:', error); // 디버깅 로그
-          setError(error);
-        }
-      } catch (err) {
-        console.error('Favorites: Failed to fetch favorite ideas:', err); // 디버깅 로그
+        console.log('Favorites: Calling getFavoritedIdeas...');
+        const { data, error } = await getFavoritedIdeas(uid);
+
+        // ✅ uid 변경 등으로 구 응답이면 버림(레이스 보호)
+        if (fetchTokenRef.current !== myToken) return;
+
+        console.log('Favorites: Received response:', { dataCount: data?.length || 0, error });
+        if (data) setIdeas(data);
+        if (error) setError(error);
+      } catch (e) {
+        console.error('Favorites: Failed to fetch favorite ideas:', e);
+        // ❗ t는 의존성에 넣지 않음. 여기서만 읽기
         setError(t('failedToLoadFavorites'));
       } finally {
-        console.log('Favorites: Fetch complete, setting loading to false'); // 디버깅 로그
-        setLoading(false);
+        if (fetchTokenRef.current === myToken) {
+          setLoading(false);
+          isFetchingRef.current = false;
+        }
       }
-    }
-    
-    fetchIdeas();
-  }, [user, t]);
+    })();
+  }, [uid]); // ✅ 오직 uid만
 
   const filteredSorted = useMemo(() => {
     const filtered = ideas.filter((i) => {

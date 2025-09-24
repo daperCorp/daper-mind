@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState,useRef } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useLanguage } from '@/context/language-context';
 import { translations } from '@/lib/translations';
@@ -22,32 +22,54 @@ export function AccountSettings() {
   const [ideasLeft, setIdeasLeft] = useState<number | null>(null);
 
   const getInitials = (name: string | null | undefined) => {
-    if (!name) return <User className="h-4 w-4" />;
-    const names = name.split(' ');
-    const initials = names.map((n) => n[0]).join('');
-    return initials.slice(0, 2).toUpperCase();
+    if (!name?.trim()) return <User className="h-4 w-4" />;
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    const initials = parts.slice(0, 2).map(p => p[0].toUpperCase()).join('');
+    return initials || <User className="h-4 w-4" />;
   };
+  
 
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      if (!user?.uid) {
-        setRole(null);
-        setDailyLeft(null);
-        setIdeasLeft(null);
-        return;
-      }
+  const uid = user?.uid ?? null;
+const fetchingRef = useRef(false);
+const tokenRef = useRef(0);
+
+useEffect(() => {
+  let alive = true;
+  if (!uid) {
+    setRole(null);
+    setDailyLeft(null);
+    setIdeasLeft(null);
+    return;
+  }
+  if (fetchingRef.current) return;
+
+  fetchingRef.current = true;
+  const myToken = ++tokenRef.current;
+
+  (async () => {
+    try {
       setLoading(true);
-      const res = await getUserUsage(user.uid);
-      if (!mounted) return;
+      const res = await getUserUsage(uid);
+      if (!alive || tokenRef.current !== myToken) return; // 레이스 방지
       setRole(res.role ?? 'free');
       setDailyLeft(typeof res.dailyLeft === 'number' ? res.dailyLeft : null);
       setIdeasLeft(typeof res.ideasLeft === 'number' ? res.ideasLeft : null);
-      setLoading(false);
+    } catch (e) {
+      console.error(e);
+      setRole('free');
+      setDailyLeft(null);
+      setIdeasLeft(null);
+    } finally {
+      if (alive && tokenRef.current === myToken) {
+        setLoading(false);
+        fetchingRef.current = false;
+      }
     }
-    load();
-    return () => { mounted = false; };
-  }, [user?.uid]);
+  })();
+
+  return () => { alive = false; };
+}, [uid]);
+
 
   if (!user) return null;
 
@@ -56,8 +78,13 @@ export function AccountSettings() {
   const ideasMax = FREE_USER_IDEA_LIMIT;
   const dailyUsed = role === 'free' && typeof dailyLeft === 'number' ? Math.max(0, dailyMax - dailyLeft) : 0;
   const ideasUsed = role === 'free' && typeof ideasLeft === 'number' ? Math.max(0, ideasMax - ideasLeft) : 0;
-  const dailyPct = role === 'free' && typeof dailyLeft === 'number' ? ((dailyUsed / dailyMax) * 100) : 0;
-  const ideasPct = role === 'free' && typeof ideasLeft === 'number' ? ((ideasUsed / ideasMax) * 100) : 0;
+  const safePct = (n: number) => Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 0;
+const dailyPct = role === 'free' && typeof dailyLeft === 'number'
+  ? safePct(((dailyMax - dailyLeft) / dailyMax) * 100)
+  : 0;
+const ideasPct = role === 'free' && typeof ideasLeft === 'number'
+  ? safePct(((ideasMax - ideasLeft) / ideasMax) * 100)
+  : 0;
 
   return (
     <Card>

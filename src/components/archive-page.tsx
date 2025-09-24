@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition,useRef  } from 'react';
 import Link from 'next/link';
 import { ArrowUpDown, BrainCircuit, LayoutGrid, Rows3, Star, Trash2, Calendar, MoreHorizontal } from 'lucide-react';
 import {
@@ -398,49 +398,44 @@ export function ArchivePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const t = useT();
+  // ✅ 의존성에 쓸 "원시값"만 뽑기
+  const uid = user?.uid ?? null;
 
-  useEffect(() => {
-    if (!user?.uid) {
-      console.log('Archive: No user found, stopping load'); // 디버깅 로그
+  // ✅ 중복 호출 가드
+  const isFetchingRef = useRef(false);
+
+   useEffect(() => {
+    // 로그인 안되어 있으면 즉시 종료
+    if (!uid) {
       setLoading(false);
       return;
     }
-    
-    async function fetchIdeas() {
-      console.log('Archive: Starting to fetch ideas for user:', user?.uid); // 디버깅 로그
-      
-      if (!user?.uid) {
-        setLoading(false);
-        return;
-      }
-    
-      setLoading(true);
-      setError(null);
-      
+
+    // 이미 실행 중이면 중복 실행 막기
+    if (isFetchingRef.current) return;
+
+    isFetchingRef.current = true;
+    setLoading(true);
+    setError(null);
+
+    (async () => {
       try {
-        console.log('Archive: Calling getArchivedIdeas...'); // 디버깅 로그
-        const { data, error } = await getArchivedIdeas(user.uid);
-        console.log('Archive: Received response:', { dataCount: data?.length || 0, error }); // 디버깅 로그
-        
-        if (data) {
-          setIdeas(data);
-          console.log('Archive: Ideas set successfully:', data.length); // 디버깅 로그
-        }
-        if (error) {
-          console.error('Archive: Server error:', error); // 디버깅 로그
-          setError(error);
-        }
-      } catch (err) {
-        console.error('Archive: Failed to fetch ideas:', err); // 디버깅 로그
+        console.log('Archive: Calling getArchivedIdeas...');
+        const { data, error } = await getArchivedIdeas(uid);
+        console.log('Archive: Received response:', { dataCount: data?.length || 0, error });
+
+        if (data) setIdeas(data);
+        if (error) setError(error);
+      } catch (e) {
+        console.error('Archive: Failed to fetch ideas:', e);
+        // ❗ t를 의존성에 넣지 말고 여기서만 사용 (문자열만 읽기)
         setError(t('failedToLoadIdeas'));
       } finally {
-        console.log('Archive: Fetch complete, setting loading to false'); // 디버깅 로그
         setLoading(false);
+        isFetchingRef.current = false;
       }
-    }
-    
-    fetchIdeas();
-  }, [user, t]);
+    })();
+  }, [uid]); // ✅ uid만 의존성
 
   const filteredSorted = useMemo(() => {    
     const filtered = ideas.filter((i) => {
