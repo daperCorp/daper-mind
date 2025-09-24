@@ -9,7 +9,7 @@ import { generateIdeaMindMap, type MindMapNode } from '@/ai/flows/generate-idea-
 import { generateMindMapNode } from '@/ai/flows/generate-mindmap-node';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, getDocs, query, doc, getDoc, updateDoc, where, setDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, doc, getDoc, updateDoc, where, setDoc,deleteDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 const IdeaSchema = z.object({
@@ -434,5 +434,42 @@ export async function deleteMindMapNode(ideaId: string, nodePath: string): Promi
         return { success: false, error: error.message || 'Failed to delete node.' };
     }
 }
+
+export async function deleteIdea(
+    ideaId: string,
+    userId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!ideaId || !userId) {
+        return { success: false, error: 'Invalid request.' };
+      }
+  
+      const ideaRef = doc(db, 'ideas', ideaId);
+      const snap = await getDoc(ideaRef);
+  
+      if (!snap.exists()) {
+        return { success: false, error: 'Idea not found.' };
+      }
+  
+      const data = snap.data();
+      // 소유자 확인 (보안규칙과 별개로 서버에서도 1차 체크)
+      if (data.userId !== userId) {
+        return { success: false, error: 'Permission denied.' };
+      }
+  
+      await deleteDoc(ideaRef);
+  
+      // 목록/상세 캐시 무효화
+      revalidatePath('/archive');
+      revalidatePath('/favorites');
+      revalidatePath(`/idea/${ideaId}`);
+      revalidatePath(`/idea/${ideaId}/mindmap`);
+  
+      return { success: true };
+    } catch (e) {
+      console.error('Error deleting idea:', e);
+      return { success: false, error: 'Failed to delete idea.' };
+    }
+  }
 
     
