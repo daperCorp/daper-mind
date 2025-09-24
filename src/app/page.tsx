@@ -173,7 +173,7 @@ export default function DaperLanding() {
                   위의 작은 점에서 시작된다는 철학을 담고 있습니다.
                 </p>
                 <p className="mb-6 text-lg text-gray-600">
-                  우리는 고객의 작은 아이디어를 소중히 여기며, 그것을 현실적이고
+                  우리는 작은 아이디어를 소중히 여기며, 그것을 현실적이고
                   실용적인 소프트웨어 솔루션으로 발전시키는 것을 사명으로 합니다.
                 </p>
                 <div className="flex items-center space-x-8">

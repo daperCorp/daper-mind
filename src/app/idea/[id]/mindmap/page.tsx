@@ -301,6 +301,14 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
       </AlertDialog>
 
       <div className="flex flex-col h-screen bg-muted/40">
+      {isPending && (
+          <div className="absolute inset-0 z-20 bg-background/50 backdrop-blur-[1px] flex items-center justify-center">
+            <div className="flex items-center gap-3 rounded-md border bg-background px-4 py-2 shadow-sm">
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+              <span className="text-sm text-muted-foreground">Processing…</span>
+            </div>
+          </div>
+        )}
         <header className="flex flex-wrap items-center justify-between p-4 border-b bg-background gap-4">
           <div className="flex items-center gap-4">
               <Button variant="outline" size="icon" asChild>
@@ -324,7 +332,6 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
               </Button>
           </div>
         </header>
-        // ...중략
 <main className="flex-1 overflow-auto p-4 md:p-8">
   {idea.mindMap ? (
     <MindMapDisplay

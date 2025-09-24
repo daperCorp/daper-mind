@@ -110,6 +110,31 @@ export const translations: Translations = {
   signOutConfirmDescription: { English: 'You will be returned to the login page.', Korean: '로그인 페이지로 돌아갑니다.' },
   languageDescription: { English: 'Choose the language for the application interface.', Korean: '애플리케이션 인터페이스의 언어를 선택하세요.' },
   privacyPolicy: { English: 'Privacy Policy', Korean: '개인정보 처리방침' },
+
+
+    // Plan / Usage
+    freePlan: { English: 'Free Plan', Korean: '무료 플랜' },
+    paidPlan: { English: 'Paid Plan', Korean: '유료 플랜' },
+    remainingIdeas: { English: 'Remaining Ideas', Korean: '남은 아이디어' },
+    remainingGenerations: { English: 'Remaining Generations', Korean: '남은 생성 횟수' },
+    quotaSignInPrompt: {
+      English: 'Sign in to generate ideas and see your limits.',
+      Korean: '아이디어 생성을 하려면 로그인하세요. 남은 사용량도 확인할 수 있어요.',
+    },
+    dailyLimitReached: {
+      English: 'You have reached your daily limit. Please upgrade to continue.',
+      Korean: '오늘의 사용 한도에 도달했습니다. 계속하려면 업그레이드하세요.',
+    },
+    ideaLimitReached: {
+      English: 'You have reached the maximum number of saved ideas.',
+      Korean: '저장할 수 있는 아이디어의 최대 개수에 도달했습니다.',
+    },
+    usage: { English: 'Usage', Korean: '사용 현황' },
+    ideasUsed: { English: 'Ideas Used', Korean: '사용한 아이디어' },
+    ideasRemaining: { English: 'Ideas Remaining', Korean: '남은 아이디어' },
+    generationsUsed: { English: 'Generations Used', Korean: '사용한 생성 횟수' },
+    generationsRemaining: { English: 'Generations Remaining', Korean: '남은 생성 횟수' },
+    today: { English: 'Today', Korean: '오늘' },
 };
 
 // ✅ 언어코드 → 사전에 쓰는 키로 매핑
