@@ -42,38 +42,36 @@ export default function DaperLanding() {
         <Navbar />
 
         <main className="flex-grow flex items-center justify-center p-4 pt-20">
-          <div className="w-full max-w-2xl text-center">
-            <div className="mb-8 flex justify-center">
-              <div className="relative">
-                <div className="flex h-32 w-32 items-center justify-center rounded-full bg-white shadow-lg">
-                  <div className="hero-dot h-4 w-4 rounded-full bg-blue-600" />
-                </div>
-                <div className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-yellow-400 opacity-70" />
-                <div className="absolute -bottom-3 -left-3 h-8 w-8 rounded-full bg-green-400 opacity-50" />
-              </div>
-            </div>
-            <h1 className="fade-in mb-6 text-4xl font-bold text-gray-900 md:text-6xl">
-              아이디어의 시작, <span className="text-blue-600">Daper</span>
-            </h1>
-            <p className="fade-in mx-auto mb-8 max-w-3xl text-xl text-gray-600 md:text-2xl">
-              종이 위의 작은 점에서 시작되는 혁신적인 소프트웨어 솔루션
-            </p>
-            <p className="fade-in mx-auto mb-10 max-w-2xl text-lg text-gray-500">
-              Dot + Paper = Daper
-              <br />
-              모든 위대한 아이디어는 종이 위의 한 점에서 시작됩니다
-            </p>
-           
-            <main className="flex-grow flex items-center justify-center p-4 pt-20">
   <div className="w-full max-w-2xl text-center">
-    {}
-    {}
-    <IdeaHero />
+    <div className="mb-8 flex justify-center">
+      <div className="relative">
+        <div className="flex h-32 w-32 items-center justify-center rounded-full bg-white shadow-lg">
+          <div className="hero-dot h-4 w-4 rounded-full bg-blue-600" />
+        </div>
+        <div className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-yellow-400 opacity-70" />
+        <div className="absolute -bottom-3 -left-3 h-8 w-8 rounded-full bg-green-400 opacity-50" />
+      </div>
+    </div>
+
+    <h1 className="fade-in mb-6 text-4xl font-bold text-gray-900 md:text-6xl">
+      아이디어의 시작, <span className="text-blue-600">Daper</span>
+    </h1>
+    <p className="fade-in mx-auto mb-8 max-w-3xl text-xl text-gray-600 md:text-2xl">
+      종이 위의 작은 점에서 시작되는 혁신적인 소프트웨어 솔루션
+    </p>
+    <p className="fade-in mx-auto mb-10 max-w-2xl text-lg text-gray-500">
+      Dot + Paper = Daper
+      <br />
+      모든 위대한 아이디어는 종이 위의 한 점에서 시작됩니다
+    </p>
+
+    {/* ⬇️ 내부 main 제거 + pt-20 제거 */}
+    <div className="w-full max-w-2xl text-center">
+      <IdeaHero />
+    </div>
   </div>
 </main>
 
-          </div>
-        </main>
 
         {/* Services */}
         <section id="services" className="bg-white py-20">

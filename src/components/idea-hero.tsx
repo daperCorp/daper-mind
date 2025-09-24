@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { LoaderCircle, Sparkles, Lightbulb } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 import { generateIdea, type GeneratedIdea } from '@/app/actions';
 import { Button } from '@/components/ui/button';
@@ -61,6 +62,7 @@ export default function IdeaHero() {
   const { language } = useLanguage();
   // const t = (key: keyof typeof translations) => translate(key, language);
   const t = useT();
+  const router = useRouter();
 
   useEffect(() => {
     if (state.error) {
@@ -78,43 +80,46 @@ export default function IdeaHero() {
     }
   }, [state, toast]);
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    // 항상 기본 제출 막고 분기 처리
+    e.preventDefault();
+  
+    if (!user) {
+      // 로그인 안 되어 있으면 로그인 페이지로
+      // 필요하면 현재 경로를 쿼리에 붙여서 로그인 후 복귀도 가능
+      router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+  
+    // 로그인 되어 있으면 서버 액션에 FormData로 넘김
+    const fd = new FormData(e.currentTarget);
+    formAction(fd);
+  };
+
   return (
     <>
-      {/* 입력 카드 */}
-      <div className="mx-auto max-w-4xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Lightbulb className="text-primary" />
-              <span>{t('describeYourIdea')}</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form ref={formRef} action={formAction} className="relative">
-              {/* 오토필 경고 방지: id/name 지정 */}
-              <input
-                id="idea"
-                name="idea"
-                type="text"
-                placeholder={
-                  // t('ideaPlaceholder') ??
-                  'e.g., A mobile app that uses AI to create personalized travel itineraries...'
-                }
-                autoComplete="off"
-                required
-                value={idea}
-                onChange={(e) => setIdea(e.target.value)}
-                className="w-full px-6 py-4 pr-16 border border-gray-300 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
-              />
-              {/* hidden fields */}
-              <input type="hidden" name="userId" value={user?.uid ?? ''} />
-              <input type="hidden" name="language" value={language} />
-              {/* 제출 버튼 (우측 둥근) */}
-              <SubmitButton />
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+
+<div className="mx-auto max-w-4xl">
+  <div className="mb-6">
+    <form ref={formRef} onSubmit={handleSubmit} className="relative">
+      <input
+        id="idea"
+        name="idea"
+        type="text"
+        placeholder={t('describeYourIdea')}
+        autoComplete="off"
+        required
+        value={idea}
+        onChange={(e) => setIdea(e.target.value)}
+        className="w-full px-6 py-4 pr-16 border border-gray-300 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+      />
+      <input type="hidden" name="userId" value={user?.uid ?? ''} />
+      <input type="hidden" name="language" value={language} />
+      <SubmitButton />
+    </form>
+  </div>
+</div>
+
 
       {/* 결과 다이얼로그 */}
       <Dialog open={open} onOpenChange={setOpen}>
