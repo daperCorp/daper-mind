@@ -302,7 +302,7 @@ function IdeaCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
+              {/* <DropdownMenuItem
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRegenerate(e as any); }}
                 disabled={isPending}
                 className="cursor-pointer"
@@ -310,14 +310,15 @@ function IdeaCard({
                 <BrainCircuit className="mr-2 h-4 w-4" />
                 {isPending ? t('regenerating') : t('regenerateMindMap')}
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator /> */}
               <DropdownMenuItem
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onSelect={(e) => { e.preventDefault(); }}  // ✅ 메뉴 자동 닫힘 차단
                 className="cursor-pointer text-destructive focus:text-destructive"
-              >
+             >
                 <DeleteButton ideaId={idea.id!} onDeleted={onDeleted} compact />
                 <span className="ml-2">{t('deleteIdea')}</span>
               </DropdownMenuItem>
+              
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

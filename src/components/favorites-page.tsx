@@ -262,13 +262,10 @@ function IdeaCard({
       />
       
      {/* 액션 버튼들 - 호버 시 표시 */}
-      <div className="absolute top-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto">
+     <div className="absolute top-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
          <div className="flex items-center gap-1 rounded-md bg-white/90 backdrop-blur-sm shadow-sm border border-gray-200/50 p-1">    
                    {/* 버튼들은 클릭 먹도록 auto */}
-          <div
-            className="pointer-events-auto"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-          >
+                   <div className="pointer-events-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
             <FavoriteButton idea={idea} onUnfavorite={onUnfavorite} compact />
           </div>
           
@@ -298,9 +295,9 @@ function IdeaCard({
               </DropdownMenuItem>
               <DropdownMenuSeparator /> */}
               <DropdownMenuItem
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
+                onSelect={(e) => {
+                  e.preventDefault();   // 메뉴 닫히는 기본 동작 방지
+                  setConfirmOpen(true); // 다이얼로그 열기
                 }}
                 className="cursor-pointer text-destructive focus:text-destructive"
               >
@@ -311,6 +308,7 @@ function IdeaCard({
                 />
                 <span className="ml-2">{t('deleteIdea')}</span>
               </DropdownMenuItem>
+
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
