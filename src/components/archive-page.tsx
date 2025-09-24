@@ -401,11 +401,14 @@ export function ArchivePage() {
 
   useEffect(() => {
     if (!user?.uid) {
+      console.log('Archive: No user found, stopping load'); // 디버깅 로그
       setLoading(false);
       return;
     }
     
     async function fetchIdeas() {
+      console.log('Archive: Starting to fetch ideas for user:', user?.uid); // 디버깅 로그
+      
       if (!user?.uid) {
         setLoading(false);
         return;
@@ -415,18 +418,23 @@ export function ArchivePage() {
       setError(null);
       
       try {
+        console.log('Archive: Calling getArchivedIdeas...'); // 디버깅 로그
         const { data, error } = await getArchivedIdeas(user.uid);
+        console.log('Archive: Received response:', { dataCount: data?.length || 0, error }); // 디버깅 로그
         
         if (data) {
           setIdeas(data);
+          console.log('Archive: Ideas set successfully:', data.length); // 디버깅 로그
         }
         if (error) {
+          console.error('Archive: Server error:', error); // 디버깅 로그
           setError(error);
         }
       } catch (err) {
-        console.error('Failed to fetch ideas:', err);
+        console.error('Archive: Failed to fetch ideas:', err); // 디버깅 로그
         setError(t('failedToLoadIdeas'));
       } finally {
+        console.log('Archive: Fetch complete, setting loading to false'); // 디버깅 로그
         setLoading(false);
       }
     }
@@ -477,8 +485,8 @@ export function ArchivePage() {
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <Skeleton className="h-8 w-48 mb-2" />
-            <Skeleton className="h-4 w-32" />
+            <h1 className="text-2xl font-bold">{t('ideaArchive')}</h1>
+            <p className="text-sm text-muted-foreground">{t('loading')}...</p>
           </div>
           <div className="flex items-center gap-2">
             <Skeleton className="h-9 w-40" />
@@ -486,6 +494,28 @@ export function ArchivePage() {
             <Skeleton className="h-9 w-9" />
           </div>
         </div>
+        
+        {/* 로딩 상태를 더 명확하게 표시 */}
+        <div className="flex items-center justify-center p-12">
+          <div className="text-center space-y-4">
+            <div className="relative w-16 h-16 mx-auto">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 opacity-20 animate-pulse"></div>
+              <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-30 animate-spin"></div>
+              <div className="absolute inset-4 rounded-full bg-white flex items-center justify-center">
+                <BrainCircuit className="h-6 w-6 text-blue-600 animate-pulse" />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                {t('loading')} {t('ideaArchive')}
+              </h3>
+              <p className="text-sm text-gray-600">
+                {t('fetchingYourIdeas') || 'Fetching your ideas...'}
+              </p>
+            </div>
+          </div>
+        </div>
+        
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-48 w-full rounded-lg" />

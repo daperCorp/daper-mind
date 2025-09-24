@@ -133,6 +133,15 @@ export default function IdeaHero() {
     }
   }, [state, toast, pending, role, t]);
 
+  // 다이얼로그 닫기 핸들러
+  const handleDialogClose = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      // 다이얼로그가 닫힐 때 상태 초기화
+      setResult(null);
+    }
+  };
+
   // 인디케이터 UI
   const QuotaBadge = ({ label, value, max }: { label: string; value: number | null; max?: number }) => {
     if (value === null) {
@@ -411,7 +420,7 @@ export default function IdeaHero() {
       )}
 
       {/* 결과 다이얼로그 */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-hidden">
           <DialogHeader className="space-y-3 pb-4 border-b">
             <div className="flex items-start justify-between gap-4">
@@ -502,7 +511,7 @@ export default function IdeaHero() {
               <div className="flex gap-2 flex-1 sm:flex-initial">
                 <Button
                   onClick={() => {
-                    setOpen(false);
+                    handleDialogClose(false);
                     router.push(`/idea/${result?.id}`);
                   }}
                   className="flex-1 sm:flex-initial"
@@ -514,7 +523,7 @@ export default function IdeaHero() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setOpen(false);
+                    handleDialogClose(false);
                     router.push('/archive');
                   }}
                   className="flex-1 sm:flex-initial"
@@ -528,7 +537,7 @@ export default function IdeaHero() {
                 <Button
                   variant="ghost"
                   onClick={() => {
-                    setOpen(false);
+                    handleDialogClose(false);
                     // 폼 포커스하여 새 아이디어 생성 유도
                     setTimeout(() => {
                       const input = document.getElementById('idea') as HTMLInputElement;
@@ -540,11 +549,13 @@ export default function IdeaHero() {
                   {t('generateAnother')}
                 </Button>
                 
-                <DialogClose asChild>
-                  <Button variant="outline" className="flex-1 sm:flex-initial">
-                    {t('close')}
-                  </Button>
-                </DialogClose>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 sm:flex-initial"
+                  onClick={() => handleDialogClose(false)}
+                >
+                  {t('close')}
+                </Button>
               </div>
             </div>
           </DialogFooter>

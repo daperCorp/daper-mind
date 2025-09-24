@@ -311,51 +311,208 @@ export async function generateIdea(
 
 export async function getArchivedIdeas(userId: string): Promise<{ data: GeneratedIdea[] | null; error: string | null }> {
   try {
+    console.log('getArchivedIdeas: Starting fetch for userId:', userId);
+    
+    // 입력 검증
+    if (!userId || userId.trim() === '') {
+      console.error('getArchivedIdeas: Invalid userId provided');
+      return { data: null, error: 'Invalid user ID provided.' };
+    }
+
+    // Firestore 연결 확인
+    if (!db) {
+      console.error('getArchivedIdeas: Firestore database not initialized');
+      return { data: null, error: 'Database connection not available.' };
+    }
+
+    console.log('getArchivedIdeas: Creating query...');
     const ideasCollection = collection(db, 'ideas');
     const qy = query(ideasCollection, where('userId', '==', userId));
+    
+    console.log('getArchivedIdeas: Executing query...');
     const snap = await getDocs(qy);
+    
+    console.log('getArchivedIdeas: Query completed, processing', snap.docs.length, 'documents');
+    
     const ideas = snap.docs.map((d) => {
-      const data = d.data() as any;
-      return {
-        id: d.id,
-        title: data.title,
-        summary: data.summary,
-        outline: data.outline,
-        mindMap: data.mindMap,
-        favorited: data.favorited,
-        createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
-        language: data.language || 'English',
-      } as GeneratedIdea;
+      try {
+        const data = d.data();
+        console.log('getArchivedIdeas: Processing document', d.id, 'with data keys:', Object.keys(data));
+        
+        // 필수 필드 확인
+        if (!data.title || !data.summary) {
+          console.warn('getArchivedIdeas: Document', d.id, 'missing required fields');
+        }
+        
+        return {
+          id: d.id,
+          title: data.title || 'Untitled',
+          summary: data.summary || 'No summary available',
+          outline: data.outline,
+          mindMap: data.mindMap,
+          favorited: Boolean(data.favorited),
+          createdAt: data.createdAt ? data.createdAt.toDate() : new Date(),
+          language: data.language || 'English',
+          userId: data.userId, // userId도 포함
+        } as GeneratedIdea;
+      } catch (docError) {
+        console.error('getArchivedIdeas: Error processing document', d.id, ':', docError);
+        // 문서 처리 실패 시에도 기본값으로 반환
+        return {
+          id: d.id,
+          title: 'Error loading title',
+          summary: 'Error loading summary',
+          outline: '',
+          mindMap: undefined,
+          favorited: false,
+          createdAt: new Date(),
+          language: 'English',
+          userId: userId,
+        } as GeneratedIdea;
+      }
     });
+
+    console.log('getArchivedIdeas: Successfully processed', ideas.length, 'ideas');
+    
+    // 날짜순으로 정렬 (최신순)
+    ideas.sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+
     return { data: ideas, error: null };
   } catch (err) {
-    console.error('Error fetching archived ideas:', err);
-    return { data: null, error: 'Failed to fetch archived ideas.' };
+    console.error('getArchivedIdeas: Error fetching archived ideas:', err);
+    
+    // 구체적인 에러 메시지 제공
+    let errorMessage = 'Failed to fetch archived ideas.';
+    
+    if (err instanceof Error) {
+      console.error('getArchivedIdeas: Error details:', {
+        name: err.name,
+        message: err.message,
+        stack: err.stack
+      });
+      
+      if (err.message.includes('permission-denied')) {
+        errorMessage = 'Permission denied. Please check your authentication.';
+      } else if (err.message.includes('unavailable')) {
+        errorMessage = 'Service temporarily unavailable. Please try again later.';
+      } else if (err.message.includes('not-found')) {
+        errorMessage = 'Ideas collection not found.';
+      }
+    }
+    
+    return { data: null, error: errorMessage };
   }
 }
 
 export async function getFavoritedIdeas(userId: string): Promise<{ data: GeneratedIdea[] | null; error: string | null }> {
   try {
+    console.log('getFavoritedIdeas: Starting fetch for userId:', userId);
+    
+    // 입력 검증
+    if (!userId || userId.trim() === '') {
+      console.error('getFavoritedIdeas: Invalid userId provided');
+      return { data: null, error: 'Invalid user ID provided.' };
+    }
+
+    // Firestore 연결 확인
+    if (!db) {
+      console.error('getFavoritedIdeas: Firestore database not initialized');
+      return { data: null, error: 'Database connection not available.' };
+    }
+
+    console.log('getFavoritedIdeas: Creating query...');
     const ideasCollection = collection(db, 'ideas');
-    const qy = query(ideasCollection, where('userId', '==', userId), where('favorited', '==', true));
+    const qy = query(
+      ideasCollection, 
+      where('userId', '==', userId), 
+      where('favorited', '==', true)
+    );
+    
+    console.log('getFavoritedIdeas: Executing query...');
     const snap = await getDocs(qy);
+    
+    console.log('getFavoritedIdeas: Query completed, processing', snap.docs.length, 'documents');
+    
     const ideas = snap.docs.map((d) => {
-      const data = d.data() as any;
-      return {
-        id: d.id,
-        title: data.title,
-        summary: data.summary,
-        outline: data.outline,
-        mindMap: data.mindMap,
-        favorited: data.favorited,
-        createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
-        language: data.language || 'English',
-      } as GeneratedIdea;
+      try {
+        const data = d.data();
+        console.log('getFavoritedIdeas: Processing document', d.id, 'with data keys:', Object.keys(data));
+        
+        // 필수 필드 확인
+        if (!data.title || !data.summary) {
+          console.warn('getFavoritedIdeas: Document', d.id, 'missing required fields');
+        }
+        
+        // favorited 필드 확인
+        if (!data.favorited) {
+          console.warn('getFavoritedIdeas: Document', d.id, 'favorited field is false or missing');
+        }
+        
+        return {
+          id: d.id,
+          title: data.title || 'Untitled',
+          summary: data.summary || 'No summary available',
+          outline: data.outline,
+          mindMap: data.mindMap,
+          favorited: Boolean(data.favorited),
+          createdAt: data.createdAt ? data.createdAt.toDate() : new Date(),
+          language: data.language || 'English',
+          userId: data.userId,
+        } as GeneratedIdea;
+      } catch (docError) {
+        console.error('getFavoritedIdeas: Error processing document', d.id, ':', docError);
+        // 문서 처리 실패 시에도 기본값으로 반환
+        return {
+          id: d.id,
+          title: 'Error loading title',
+          summary: 'Error loading summary',
+          outline: '',
+          mindMap: undefined,
+          favorited: true, // 즐겨찾기 쿼리에서 온 것이므로 true
+          createdAt: new Date(),
+          language: 'English',
+          userId: userId,
+        } as GeneratedIdea;
+      }
     });
+
+    console.log('getFavoritedIdeas: Successfully processed', ideas.length, 'favorite ideas');
+    
+    // 날짜순으로 정렬 (최신순)
+    ideas.sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+
     return { data: ideas, error: null };
   } catch (err) {
-    console.error('Error fetching favorited ideas:', err);
-    return { data: null, error: 'Failed to fetch favorited ideas.' };
+    console.error('getFavoritedIdeas: Error fetching favorited ideas:', err);
+    
+    // 구체적인 에러 메시지 제공
+    let errorMessage = 'Failed to fetch favorite ideas.';
+    
+    if (err instanceof Error) {
+      console.error('getFavoritedIdeas: Error details:', {
+        name: err.name,
+        message: err.message,
+        stack: err.stack
+      });
+      
+      if (err.message.includes('permission-denied')) {
+        errorMessage = 'Permission denied. Please check your authentication.';
+      } else if (err.message.includes('unavailable')) {
+        errorMessage = 'Service temporarily unavailable. Please try again later.';
+      } else if (err.message.includes('not-found')) {
+        errorMessage = 'Ideas collection not found.';
+      }
+    }
+    
+    return { data: null, error: errorMessage };
   }
 }
 

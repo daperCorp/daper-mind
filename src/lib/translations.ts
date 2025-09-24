@@ -233,8 +233,8 @@ export const translations: Translations = {
   signInPrompt: { English: '🔒', Korean: '🔒' },
   signInToStart: { English: 'to start generating and saving your ideas', Korean: '아이디어 생성 및 저장을 시작하려면' },
 
-  // Missing keys from previous components
-  removeFromFavorites: { English: 'Remove from favorites', Korean: '즐겨찾기에서 제거' },
+  // Loading states
+  fetchingYourIdeas: { English: 'Fetching your ideas...', Korean: '아이디어를 불러오는 중...' },
   regenerating: { English: 'Regenerating...', Korean: '재생성 중...' },
   deleteIdea: { English: 'Delete Idea', Korean: '아이디어 삭제' },
   unfavorite: { English: 'Unfavorite', Korean: '즐겨찾기 해제' },

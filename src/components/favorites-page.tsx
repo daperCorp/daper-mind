@@ -381,26 +381,42 @@ export function FavoritesPage() {
 
   useEffect(() => {
     if (!user?.uid) {
+      console.log('Favorites: No user found, stopping load. User state:', user); // 디버깅 로그
       setLoading(false);
       return;
     }
     
     async function fetchIdeas() {
+      console.log('Favorites: Starting to fetch ideas for user:', user?.uid); // 안전한 접근
+      
+      // 추가 null 체크
+      if (!user?.uid) {
+        console.log('Favorites: User became null during fetch, aborting');
+        setLoading(false);
+        return;
+      }
+      
       setLoading(true);
       setError(null);
       
       try {
-        const { data, error } = await getFavoritedIdeas(user!.uid);
+        console.log('Favorites: Calling getFavoritedIdeas...'); // 디버깅 로그
+        const { data, error } = await getFavoritedIdeas(user.uid);
+        console.log('Favorites: Received response:', { dataCount: data?.length || 0, error }); // 디버깅 로그
+        
         if (data) {
           setIdeas(data);
+          console.log('Favorites: Ideas set successfully:', data.length); // 디버깅 로그
         }
         if (error) {
+          console.error('Favorites: Server error:', error); // 디버깅 로그
           setError(error);
         }
       } catch (err) {
-        console.error('Failed to fetch favorite ideas:', err);
+        console.error('Favorites: Failed to fetch favorite ideas:', err); // 디버깅 로그
         setError(t('failedToLoadFavorites'));
       } finally {
+        console.log('Favorites: Fetch complete, setting loading to false'); // 디버깅 로그
         setLoading(false);
       }
     }
