@@ -55,6 +55,7 @@ export default function IdeaHero() {
   const [result, setResult] = useState<GeneratedIdea | null>(null);
   const [open, setOpen] = useState(false);
   const [idea, setIdea] = useState('');
+  const [pending, setPending] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   const { toast } = useToast();
@@ -65,6 +66,7 @@ export default function IdeaHero() {
   const router = useRouter();
 
   useEffect(() => {
+    if (pending && (state.error || state.data)) setPending(false);
     if (state.error) {
       toast({
         variant: 'destructive',
@@ -78,7 +80,7 @@ export default function IdeaHero() {
       formRef.current?.reset();
       setOpen(true); // ✅ 결과를 다이얼로그로 오픈
     }
-  }, [state, toast]);
+  }, [state, toast, pending]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     // 항상 기본 제출 막고 분기 처리
@@ -90,6 +92,9 @@ export default function IdeaHero() {
       router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
+
+    if(pending) return;
+    setPending(true);
   
     // 로그인 되어 있으면 서버 액션에 FormData로 넘김
     const fd = new FormData(e.currentTarget);

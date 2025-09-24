@@ -96,8 +96,8 @@ export async function generateIdea(prevState: any, formData: FormData): Promise<
     });
     console.log('Document added with ID:', docRef.id);
 
-    revalidatePath('/');
-    revalidatePath('/archive');
+    // revalidatePath('/');
+    // revalidatePath('/archive');
 
 
     return {
