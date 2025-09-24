@@ -282,6 +282,7 @@ export async function generateIdea(
     // 3) Save idea
     const ideaRef = await addDoc(collection(db, 'ideas'), {
       ...newIdea,
+      requestId,
       createdAt: serverTimestamp(),
     });
 
