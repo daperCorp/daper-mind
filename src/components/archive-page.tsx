@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition,useRef  } from 'react';
+import { useEffect, useMemo, useState, useTransition, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowUpDown, BrainCircuit, LayoutGrid, Rows3, Star, Trash2, Calendar, MoreHorizontal } from 'lucide-react';
+import { ArrowUpDown, BrainCircuit, LayoutGrid, Rows3, Star, Trash2, Calendar } from 'lucide-react';
 import {
   getArchivedIdeas,
   regenerateMindMap,
@@ -35,13 +35,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 function formatDate(d?: Date) {
   if (!d) return '';
@@ -135,11 +128,14 @@ function DeleteButton({
       return;
     }
 
+    console.log('🗑️ 삭제 시작:', { ideaId, userId: user.uid });
     setIsDeleting(true);
     
     startTransition(async () => {
       try {
         const { success, error } = await deleteIdea(ideaId, user.uid);
+        
+        console.log('🗑️ 삭제 결과:', { success, error });
         
         if (success) {
           toast({ 
@@ -147,13 +143,13 @@ function DeleteButton({
             description: t('ideaRemoved')
           });
           
-          setTimeout(() => {
-            onDeleted?.();
-            setOpen(false);
-            setIsDeleting(false);
-          }, 100);
+          // 즉시 콜백 호출하여 UI에서 제거
+          onDeleted();
+          setOpen(false);
+          setIsDeleting(false);
           
         } else {
+          console.error('❌ 삭제 실패:', error);
           toast({ 
             variant: 'destructive', 
             title: t('error'), 
@@ -162,7 +158,7 @@ function DeleteButton({
           setIsDeleting(false);
         }
       } catch (err) {
-        console.error('Delete operation failed:', err);
+        console.error('💥 삭제 예외:', err);
         toast({
           variant: 'destructive',
           title: t('error'),
@@ -173,41 +169,27 @@ function DeleteButton({
     });
   };
 
-  const DeleteTrigger = compact ? (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-8 px-2 text-muted-foreground hover:text-destructive transition-colors"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setOpen(true);
-      }}
-      disabled={isDeleting}
-      aria-label={t('deleteIdea')}
-    >
-      <Trash2 className="h-4 w-4" />
-    </Button>
-  ) : (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setOpen(true);
-      }}
-      disabled={isDeleting}
-      aria-label={t('deleteIdea')}
-    >
-      <Trash2 className="h-4 w-4" />
-    </Button>
-  );
-
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      {DeleteTrigger}
+      <Button
+        variant="ghost"
+        size={compact ? "sm" : "icon"}
+        className={cn(
+          "text-muted-foreground hover:text-destructive transition-colors",
+          compact ? "h-8 px-2" : "h-8 w-8"
+        )}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(true);
+        }}
+        disabled={isDeleting || isPending}
+        aria-label={t('deleteIdea')}
+      >
+        <Trash2 className="h-4 w-4" />
+        {compact && <span className="ml-1 hidden sm:inline">{t('delete')}</span>}
+      </Button>
+      
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{t('deleteThisIdea')}</AlertDialogTitle>
@@ -222,6 +204,7 @@ function DeleteButton({
           <AlertDialogAction 
             onClick={handleDelete} 
             disabled={isPending || isDeleting}
+            className="bg-destructive hover:bg-destructive/90"
           >
             {isPending || isDeleting ? t('deleting') : t('delete')}
           </AlertDialogAction>
@@ -273,16 +256,17 @@ function IdeaCard({
 
   return (
     <Card className="group relative h-full transition-all duration-200 border bg-card hover:shadow-lg hover:-translate-y-0.5">
-      {/* ✅ 카드 전역 클릭 링크: 최상단으로 올림 */}
+      {/* 카드 전역 클릭 링크 */}
       <Link
         href={`/idea/${idea.id}`}
         className="absolute inset-0 z-10"
         aria-label={idea.title || 'Open idea'}
       />
 
-      {/* 액션 버튼들: 링크보다 더 위로 */}
-      <div className="absolute top-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto">
-        <div className="flex items-center gap-1 rounded-md bg-white/90 backdrop-blur-sm shadow-sm border border-gray-200/50 p-1">
+      {/* 액션 버튼들 - DropdownMenu 제거하고 직접 배치 */}
+      <div className="absolute top-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="flex items-center gap-1 rounded-md bg-white/95 backdrop-blur-sm shadow-md border border-gray-200/50 p-1">
+          {/* 즐겨찾기 버튼 */}
           <div
             className="pointer-events-auto"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -290,41 +274,17 @@ function IdeaCard({
             <FavoriteButton idea={idea} compact />
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-muted-foreground hover:text-foreground transition-colors pointer-events-auto"
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {/* <DropdownMenuItem
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRegenerate(e as any); }}
-                disabled={isPending}
-                className="cursor-pointer"
-              >
-                <BrainCircuit className="mr-2 h-4 w-4" />
-                {isPending ? t('regenerating') : t('regenerateMindMap')}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator /> */}
-              <DropdownMenuItem
-                onSelect={(e) => { e.preventDefault(); }}  // ✅ 메뉴 자동 닫힘 차단
-                className="cursor-pointer text-destructive focus:text-destructive"
-             >
-                <DeleteButton ideaId={idea.id!} onDeleted={onDeleted} compact />
-                <span className="ml-2">{t('deleteIdea')}</span>
-              </DropdownMenuItem>
-              
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* 삭제 버튼 - DropdownMenu 없이 직접 */}
+          <div
+            className="pointer-events-auto"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          >
+            <DeleteButton ideaId={idea.id!} onDeleted={onDeleted} compact />
+          </div>
         </div>
       </div>
 
-      {/* ✅ 내용은 기본적으로 클릭 안 받게 */}
+      {/* 카드 내용 */}
       <div className={cn('relative z-0 pointer-events-none', dense ? 'p-4' : 'p-5')}>
         <div className={cn('space-y-3 pr-20')}>
           <CardHeader className="p-0">
@@ -391,13 +351,14 @@ export function ArchivePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const t = useT();
-  // ✅ 의존성에 쓸 "원시값"만 뽑기
+  
+  // 의존성에 쓸 "원시값"만 뽑기
   const uid = user?.uid ?? null;
 
-  // ✅ 중복 호출 가드
+  // 중복 호출 가드
   const isFetchingRef = useRef(false);
 
-   useEffect(() => {
+  useEffect(() => {
     // 로그인 안되어 있으면 즉시 종료
     if (!uid) {
       setLoading(false);
@@ -421,14 +382,13 @@ export function ArchivePage() {
         if (error) setError(error);
       } catch (e) {
         console.error('Archive: Failed to fetch ideas:', e);
-        // ❗ t를 의존성에 넣지 말고 여기서만 사용 (문자열만 읽기)
         setError(t('failedToLoadIdeas'));
       } finally {
         setLoading(false);
         isFetchingRef.current = false;
       }
     })();
-  }, [uid]); // ✅ uid만 의존성
+  }, [uid]); // uid만 의존성
 
   const filteredSorted = useMemo(() => {    
     const filtered = ideas.filter((i) => {
@@ -456,13 +416,27 @@ export function ArchivePage() {
   };
 
   const handleIdeaDeleted = (id: string) => {
+    console.log('🗑️ 아이디어 삭제 처리:', id);
+    
+    // 애니메이션을 위해 deletingIds에 추가
     setDeletingIds(prev => new Set(prev).add(id));
     
+    // 즉시 ideas 배열에서 제거
+    setIdeas((prev) => {
+      const filtered = prev.filter((i) => i.id !== id);
+      console.log('🗑️ 아이디어 목록 업데이트:', { 
+        이전개수: prev.length, 
+        삭제후개수: filtered.length 
+      });
+      return filtered;
+    });
+    
+    // 300ms 후 deletingIds에서도 제거 (애니메이션 완료 후)
     setTimeout(() => {
-      setIdeas((prev) => prev.filter((i) => i.id !== id));
       setDeletingIds(prev => {
         const next = new Set(prev);
         next.delete(id);
+        console.log('🗑️ deletingIds에서 제거 완료:', id);
         return next;
       });
     }, 300);

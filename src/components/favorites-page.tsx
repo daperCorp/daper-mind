@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition, useMemo, useRef } from 'react';
 import Link from 'next/link';
-import { BrainCircuit, Star, Calendar, MoreHorizontal, Trash2, ArrowUpDown, LayoutGrid, Rows3 } from 'lucide-react';
+import { BrainCircuit, Star, Calendar, Trash2, ArrowUpDown, LayoutGrid, Rows3 } from 'lucide-react';
 import { getFavoritedIdeas, regenerateMindMap, toggleFavorite, deleteIdea, type GeneratedIdea } from '@/app/actions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,13 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { MindMapNode } from '@/ai/flows/generate-idea-mindmap';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -115,11 +108,14 @@ function DeleteButton({
       return;
     }
 
+    console.log('🗑️ 즐겨찾기에서 삭제 시작:', { ideaId, userId: user.uid });
     setIsDeleting(true);
     
     startTransition(async () => {
       try {
         const { success, error } = await deleteIdea(ideaId, user.uid);
+        
+        console.log('🗑️ 즐겨찾기 삭제 결과:', { success, error });
         
         if (success) {
           toast({ 
@@ -127,13 +123,13 @@ function DeleteButton({
             description: t('ideaDeletedFromFavorites')
           });
           
-          setTimeout(() => {
-            onDeleted?.();
-            setOpen(false);
-            setIsDeleting(false);
-          }, 100);
+          // 즉시 콜백 호출하여 UI에서 제거
+          onDeleted();
+          setOpen(false);
+          setIsDeleting(false);
           
         } else {
+          console.error('❌ 즐겨찾기 삭제 실패:', error);
           toast({ 
             variant: 'destructive', 
             title: t('error'), 
@@ -142,7 +138,7 @@ function DeleteButton({
           setIsDeleting(false);
         }
       } catch (err) {
-        console.error('Delete operation failed:', err);
+        console.error('💥 즐겨찾기 삭제 예외:', err);
         toast({
           variant: 'destructive',
           title: t('error'),
@@ -153,41 +149,27 @@ function DeleteButton({
     });
   };
 
-  const DeleteTrigger = compact ? (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-8 px-2 text-muted-foreground hover:text-destructive transition-colors"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setOpen(true);
-      }}
-      disabled={isDeleting}
-      aria-label={t('deleteIdea')}
-    >
-      <Trash2 className="h-4 w-4" />
-    </Button>
-  ) : (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setOpen(true);
-      }}
-      disabled={isDeleting}
-      aria-label={t('deleteIdea')}
-    >
-      <Trash2 className="h-4 w-4" />
-    </Button>
-  );
-
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      {DeleteTrigger}
+      <Button
+        variant="ghost"
+        size={compact ? "sm" : "icon"}
+        className={cn(
+          "text-muted-foreground hover:text-destructive transition-colors",
+          compact ? "h-8 px-2" : "h-8 w-8"
+        )}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(true);
+        }}
+        disabled={isDeleting || isPending}
+        aria-label={t('deleteIdea')}
+      >
+        <Trash2 className="h-4 w-4" />
+        {compact && <span className="ml-1 hidden sm:inline">{t('delete')}</span>}
+      </Button>
+      
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{t('deleteFavoriteIdea')}</AlertDialogTitle>
@@ -202,6 +184,7 @@ function DeleteButton({
           <AlertDialogAction 
             onClick={handleDelete} 
             disabled={isPending || isDeleting}
+            className="bg-destructive hover:bg-destructive/90"
           >
             {isPending || isDeleting ? t('deleting') : t('delete')}
           </AlertDialogAction>
@@ -255,62 +238,35 @@ function IdeaCard({
 
   return (
     <Card className="group relative h-full transition-all duration-200 border bg-card hover:shadow-lg hover:-translate-y-0.5">
-      {/* ✅ 카드 전역 클릭 링크: 최상단으로 올림 */}
+      {/* 카드 전역 클릭 링크 */}
       <Link
-       href={`/idea/${idea.id}`}        className="absolute inset-0 z-10"
-       aria-label={idea.title || 'Open idea'}
+        href={`/idea/${idea.id}`}
+        className="absolute inset-0 z-10"
+        aria-label={idea.title || 'Open idea'}
       />
       
-     {/* 액션 버튼들 - 호버 시 표시 */}
-     <div className="absolute top-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-         <div className="flex items-center gap-1 rounded-md bg-white/90 backdrop-blur-sm shadow-sm border border-gray-200/50 p-1">    
-                   {/* 버튼들은 클릭 먹도록 auto */}
-                   <div className="pointer-events-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+      {/* 액션 버튼들 - DropdownMenu 제거하고 직접 배치 */}
+      <div className="absolute top-3 right-3 z-20 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="flex items-center gap-1 rounded-md bg-white/95 backdrop-blur-sm shadow-md border border-gray-200/50 p-1">
+          {/* 즐겨찾기 해제 버튼 */}
+          <div
+            className="pointer-events-auto"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          >
             <FavoriteButton idea={idea} onUnfavorite={onUnfavorite} compact />
           </div>
-          
-          {/* 더보기 드롭다운 메뉴 */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-muted-foreground hover:text-foreground transition-colors pointer-events-auto"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {/* <DropdownMenuItem
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRegenerate(e as any); }}
-                disabled={isPending}
-                className="cursor-pointer"
-              >
-                <BrainCircuit className="mr-2 h-4 w-4" />
-                {isPending ? t('regenerating') : t('regenerateMindMap')}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator /> */}
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();   // 메뉴 닫히는 기본 동작 방지
-                  setConfirmOpen(true); // 다이얼로그 열기
-                }}
-                className="cursor-pointer text-destructive focus:text-destructive"
-              >
-                <DeleteButton 
-                  ideaId={idea.id!} 
-                  onDeleted={() => onDeleted(idea.id!)} 
-                  compact 
-                />
-                <span className="ml-2">{t('deleteIdea')}</span>
-              </DropdownMenuItem>
 
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* 삭제 버튼 - DropdownMenu 없이 직접 */}
+          <div
+            className="pointer-events-auto"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          >
+            <DeleteButton 
+              ideaId={idea.id!} 
+              onDeleted={() => onDeleted(idea.id!)} 
+              compact 
+            />
+          </div>
         </div>
       </div>
 
@@ -324,7 +280,7 @@ function IdeaCard({
 
       {/* 카드 내용 */}
       <div className={cn('relative z-0 pointer-events-none', dense ? 'p-4 pt-12' : 'p-5 pt-14')}>
-        <div className={cn('space-y-3 pr-20')}> {/* 버튼 영역 확보 */}
+        <div className={cn('space-y-3 pr-20')}>
           <CardHeader className="p-0">
             <div className="flex items-start gap-2">
               <div className="flex-1 min-w-0">
@@ -386,24 +342,23 @@ export function FavoritesPage() {
   const t = useT();
   const { toast } = useToast();
   
-  // ✅ 의존성에 쓸 원시값만
+  // 의존성에 쓸 원시값만
   const uid = user?.uid ?? null;
 
-  // ✅ 중복 호출 가드 + 레이스 방지 토큰
+  // 중복 호출 가드 + 레이스 방지 토큰
   const isFetchingRef = useRef(false);
   const fetchTokenRef = useRef(0);
 
   useEffect(() => {
-    if (!uid) {                // 로그인 안 됨 → 종료
+    if (!uid) {
       setLoading(false);
       return;
     }
 
-    if (isFetchingRef.current) // 진행 중이면 중복 실행 차단
-      return;
+    if (isFetchingRef.current) return;
 
     isFetchingRef.current = true;
-    const myToken = ++fetchTokenRef.current; // 최신 요청 토큰
+    const myToken = ++fetchTokenRef.current;
     setLoading(true);
     setError(null);
 
@@ -412,7 +367,6 @@ export function FavoritesPage() {
         console.log('Favorites: Calling getFavoritedIdeas...');
         const { data, error } = await getFavoritedIdeas(uid);
 
-        // ✅ uid 변경 등으로 구 응답이면 버림(레이스 보호)
         if (fetchTokenRef.current !== myToken) return;
 
         console.log('Favorites: Received response:', { dataCount: data?.length || 0, error });
@@ -420,7 +374,6 @@ export function FavoritesPage() {
         if (error) setError(error);
       } catch (e) {
         console.error('Favorites: Failed to fetch favorite ideas:', e);
-        // ❗ t는 의존성에 넣지 않음. 여기서만 읽기
         setError(t('failedToLoadFavorites'));
       } finally {
         if (fetchTokenRef.current === myToken) {
@@ -429,7 +382,7 @@ export function FavoritesPage() {
         }
       }
     })();
-  }, [uid]); // ✅ 오직 uid만
+  }, [uid]);
 
   const filteredSorted = useMemo(() => {
     const filtered = ideas.filter((i) => {
@@ -454,6 +407,7 @@ export function FavoritesPage() {
   }, [ideas, q, sortKey, deletingIds]);
 
   const handleUnfavorite = (id: string) => {
+    console.log('⭐ 즐겨찾기 해제:', id);
     setIdeas(prevIdeas => prevIdeas.filter(idea => idea.id !== id));
     toast({
       title: t('removedFromFavorites'),
@@ -468,13 +422,27 @@ export function FavoritesPage() {
   };
 
   const handleIdeaDeleted = (id: string) => {
+    console.log('🗑️ 즐겨찾기에서 아이디어 삭제 처리:', id);
+    
+    // 애니메이션을 위해 deletingIds에 추가
     setDeletingIds(prev => new Set(prev).add(id));
     
+    // 즉시 ideas 배열에서 제거
+    setIdeas((prev) => {
+      const filtered = prev.filter((i) => i.id !== id);
+      console.log('🗑️ 즐겨찾기 목록 업데이트:', { 
+        이전개수: prev.length, 
+        삭제후개수: filtered.length 
+      });
+      return filtered;
+    });
+    
+    // 300ms 후 deletingIds에서도 제거 (애니메이션 완료 후)
     setTimeout(() => {
-      setIdeas(prev => prev.filter(i => i.id !== id));
       setDeletingIds(prev => {
         const next = new Set(prev);
         next.delete(id);
+        console.log('🗑️ 즐겨찾기 deletingIds에서 제거 완료:', id);
         return next;
       });
     }, 300);
@@ -494,6 +462,28 @@ export function FavoritesPage() {
             <Skeleton className="h-9 w-9" />
           </div>
         </div>
+        
+        {/* 로딩 상태 표시 */}
+        <div className="flex items-center justify-center p-12">
+          <div className="text-center space-y-4">
+            <div className="relative w-16 h-16 mx-auto">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 opacity-20 animate-pulse"></div>
+              <div className="absolute inset-2 rounded-full bg-gradient-to-r from-yellow-500 to-orange-600 opacity-30 animate-spin"></div>
+              <div className="absolute inset-4 rounded-full bg-white flex items-center justify-center">
+                <Star className="h-6 w-6 text-yellow-600 animate-pulse" />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                {t('loading')} {t('favoriteIdeas')}
+              </h3>
+              <p className="text-sm text-gray-600">
+                {t('fetchingYourFavorites') || 'Fetching your favorite ideas...'}
+              </p>
+            </div>
+          </div>
+        </div>
+        
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-48 w-full rounded-lg" />

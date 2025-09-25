@@ -435,148 +435,148 @@ useEffect(() => {
 )}
 
 
-      {/* 결과 다이얼로그 */}
-      <Dialog open={open} onOpenChange={handleDialogClose}>
-        <DialogContent className="sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-hidden">
-          <DialogHeader className="space-y-3 pb-4 border-b">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <DialogTitle className="text-2xl md:text-3xl font-bold leading-tight line-clamp-2">
-                  {result?.title ?? t('generatedIdea')}
-                </DialogTitle>
-                {result?.summary && (
-                  <DialogDescription className="text-base md:text-lg text-muted-foreground mt-2 line-clamp-3">
-                    {result.summary}
-                  </DialogDescription>
-                )}
-              </div>
-              
-              {/* 성공 표시 */}
-              <div className="flex items-center gap-2 rounded-full bg-green-50 text-green-700 border border-green-200 px-3 py-1.5 text-sm font-medium">
-                <Sparkles className="h-4 w-4" />
-                <span>{t('generated')}</span>
-              </div>
+      {/* 결과 다이얼로그 - 모바일 최적화 버전 */}
+<Dialog open={open} onOpenChange={handleDialogClose}>
+  <DialogContent className="sm:max-w-4xl lg:max-w-5xl w-[95vw] h-[95vh] sm:h-[90vh] p-0 gap-0 flex flex-col">
+    <DialogHeader className="flex-shrink-0 space-y-3 p-4 sm:p-6 pb-4 border-b">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <DialogTitle className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight line-clamp-2">
+            {result?.title ?? t('generatedIdea')}
+          </DialogTitle>
+          {result?.summary && (
+            <DialogDescription className="text-sm sm:text-base md:text-lg text-muted-foreground mt-2 line-clamp-3">
+              {result.summary}
+            </DialogDescription>
+          )}
+        </div>
+        
+        {/* 성공 표시 */}
+        <div className="flex items-center gap-2 rounded-full bg-green-50 text-green-700 border border-green-200 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium">
+          <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">{t('generated')}</span>
+        </div>
+      </div>
+    </DialogHeader>
+
+    <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 overscroll-contain">
+      <div className="space-y-4 sm:space-y-6 pb-4">
+        {result?.outline && (
+          <div className="rounded-lg border bg-gradient-to-br from-slate-50 to-gray-50 p-4 sm:p-6">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              <h3 className="text-base sm:text-lg font-semibold">{t('ideaOutline')}</h3>
             </div>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto py-4">
-            <div className="space-y-6">
-              {result?.outline && (
-                <div className="rounded-lg border bg-gradient-to-br from-slate-50 to-gray-50 p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                    <h3 className="text-lg font-semibold">{t('ideaOutline')}</h3>
-                  </div>
-                  <div className="prose prose-sm max-w-none">
-                    <OutlineDisplay outline={result.outline} />
-                  </div>
-                </div>
-              )}
-              
-              {/* 추가 정보 섹션 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-lg border bg-white p-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                    <span>{t('language')}</span>
-                  </div>
-                  <p className="font-medium">{result?.language || 'English'}</p>
-                </div>
-                
-                <div className="rounded-lg border bg-white p-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                    <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                    <span>{t('createdOn')}</span>
-                  </div>
-                  <p className="font-medium">{t('justNow')}</p>
-                </div>
-                
-                <div className="rounded-lg border bg-white p-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                    <span>{t('status')}</span>
-                  </div>
-                  <p className="font-medium text-green-600">{t('savedToArchive')}</p>
-                </div>
-              </div>
-
-              {/* 다음 단계 안내 */}
-              <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-6">
-                <h4 className="text-lg font-semibold text-blue-900 mb-3">{t('whatsNext')}</h4>
-                <div className="space-y-2 text-sm text-blue-700">
-                  <p className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                    {t('exploreFullDetails')}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                    {t('addToFavorites')}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                    {t('generateMoreIdeas')}
-                  </p>
-                </div>
-              </div>
+            <div className="prose prose-sm max-w-none">
+              <OutlineDisplay outline={result.outline} />
             </div>
           </div>
-
-          <DialogFooter className="border-t pt-4 gap-2 sm:gap-3">
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-              {/* 주요 액션 버튼들 */}
-              <div className="flex gap-2 flex-1 sm:flex-initial">
-                <Button
-                  onClick={() => {
-                    handleDialogClose(false);
-                    router.push(`/idea/${result?.id}`);
-                  }}
-                  className="flex-1 sm:flex-initial"
-                  disabled={!result?.id}
-                >
-                  {t('viewDetails')}
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    handleDialogClose(false);
-                    router.push('/archive');
-                  }}
-                  className="flex-1 sm:flex-initial"
-                >
-                  {t('goToArchive')}
-                </Button>
-              </div>
-              
-              {/* 보조 액션 버튼들 */}
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    handleDialogClose(false);
-                    // 폼 포커스하여 새 아이디어 생성 유도
-                    setTimeout(() => {
-                      const input = document.getElementById('idea') as HTMLInputElement;
-                      input?.focus();
-                    }, 100);
-                  }}
-                  className="flex-1 sm:flex-initial"
-                >
-                  {t('generateAnother')}
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="flex-1 sm:flex-initial"
-                  onClick={() => handleDialogClose(false)}
-                >
-                  {t('close')}
-                </Button>
-              </div>
+        )}
+        
+        {/* 추가 정보 섹션 */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="rounded-lg border bg-white p-3 sm:p-4">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-2">
+              <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+              <span>{t('language')}</span>
             </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <p className="font-medium text-sm sm:text-base">{result?.language || 'English'}</p>
+          </div>
+          
+          <div className="rounded-lg border bg-white p-3 sm:p-4">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-2">
+              <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+              <span>{t('createdOn')}</span>
+            </div>
+            <p className="font-medium text-sm sm:text-base">{t('justNow')}</p>
+          </div>
+          
+          <div className="rounded-lg border bg-white p-3 sm:p-4">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-2">
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              <span>{t('status')}</span>
+            </div>
+            <p className="font-medium text-green-600 text-sm sm:text-base">{t('savedToArchive')}</p>
+          </div>
+        </div>
+
+        {/* 다음 단계 안내 */}
+        <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4 sm:p-6">
+          <h4 className="text-base sm:text-lg font-semibold text-blue-900 mb-2 sm:mb-3">{t('whatsNext')}</h4>
+          <div className="space-y-2 text-xs sm:text-sm text-blue-700">
+            <p className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+              <span>{t('exploreFullDetails')}</span>
+            </p>
+            <p className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+              <span>{t('addToFavorites')}</span>
+            </p>
+            <p className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+              <span>{t('generateMoreIdeas')}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <DialogFooter className="flex-shrink-0 border-t p-4 sm:p-6 pt-3 sm:pt-4 gap-2 sm:gap-3 bg-white">
+      <div className="flex flex-col gap-3 w-full">
+        {/* 주요 액션 버튼들 */}
+        <div className="flex gap-2 w-full">
+          <Button
+            onClick={() => {
+              handleDialogClose(false);
+              router.push(`/idea/${result?.id}`);
+            }}
+            className="flex-1 h-11 text-sm sm:text-base"
+            disabled={!result?.id}
+          >
+            {t('viewDetails')}
+          </Button>
+          
+          <Button
+            variant="outline"
+            onClick={() => {
+              handleDialogClose(false);
+              router.push('/archive');
+            }}
+            className="flex-1 h-11 text-sm sm:text-base"
+          >
+            {t('goToArchive')}
+          </Button>
+        </div>
+        
+        {/* 보조 액션 버튼들 */}
+        <div className="flex gap-2 w-full">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              handleDialogClose(false);
+              // 폼 포커스하여 새 아이디어 생성 유도
+              setTimeout(() => {
+                const input = document.getElementById('idea') as HTMLInputElement;
+                input?.focus();
+              }, 100);
+            }}
+            className="flex-1 h-10 text-sm"
+          >
+            {t('generateAnother')}
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            className="flex-1 h-10 text-sm"
+            onClick={() => handleDialogClose(false)}
+          >
+            {t('close')}
+          </Button>
+        </div>
+      </div>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
     </>
   );
 }

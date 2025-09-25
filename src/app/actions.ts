@@ -116,6 +116,8 @@ export async function getUserData(userId: string): Promise<{ data: SerializableU
 
 export async function upsertUser(user: SerializableUser): Promise<{ error: string | null }> {
   try {
+    console.log('👤 upsertUser 시작:', { uid: user.uid });
+    
     const userRef = doc(db, 'users', user.uid);
     const snap = await getDoc(userRef);
 
@@ -128,7 +130,8 @@ export async function upsertUser(user: SerializableUser): Promise<{ error: strin
     };
 
     if (!snap.exists()) {
-      // New user -> set default role & counters
+      // ✅ 새 사용자 -> 명확한 초기값 설정
+      console.log('🆕 새 사용자 생성');
       await setDoc(
         userRef,
         {
@@ -136,13 +139,20 @@ export async function upsertUser(user: SerializableUser): Promise<{ error: strin
           role: 'free',
           ideaCount: 0,
           apiRequestCount: 0,
-          lastApiRequestDate: null,
+          lastApiRequestDate: null, // 명시적으로 null
         },
         { merge: true }
       );
+      console.log('✅ 새 사용자 생성 완료');
     } else {
-      // Existing user -> ensure defaults exist
+      // ✅ 기존 사용자 -> 기본값 보장하되 기존값 유지
       const data = snap.data() as Partial<SerializableUser>;
+      console.log('🔄 기존 사용자 업데이트:', {
+        기존role: data.role,
+        기존ideaCount: data.ideaCount,
+        기존apiRequestCount: data.apiRequestCount
+      });
+      
       await setDoc(
         userRef,
         {
@@ -154,11 +164,12 @@ export async function upsertUser(user: SerializableUser): Promise<{ error: strin
         },
         { merge: true }
       );
+      console.log('✅ 기존 사용자 업데이트 완료');
     }
 
     return { error: null };
   } catch (err) {
-    console.error('Error saving user to Firestore:', err);
+    console.error('❌ upsertUser 오류:', err);
     return { error: 'Failed to save user data.' };
   }
 }
@@ -808,38 +819,90 @@ export async function deleteIdea(
 // 파일 상단의 나머지 import 옆
 // 이미 FREE_USER_API_LIMIT, FREE_USER_IDEA_LIMIT, getUserData 가 있다고 가정
 export async function getUserUsage(userId: string): Promise<{
-    role: 'free' | 'paid';
-    dailyLeft: number | null;   // null이면 무제한
-    ideasLeft: number | null;   // null이면 무제한
-    error?: string | null;
-  }> {
-    try {
-      const { data, error } = await getUserData(userId);
-      if (error || !data) return { role: 'free', dailyLeft: 0, ideasLeft: 0, error: error ?? 'User not found' };
-  
-      const role = data.role ?? 'free';
-  
-      if (role === 'paid') {
-        return { role, dailyLeft: null, ideasLeft: null, error: null }; // 무제한
-      }
-  
-      // free
-      const now = new Date();
-      const last = data.lastApiRequestDate;
-      let usedToday = data.apiRequestCount ?? 0;
-      if (last) {
-        const oneDayMs = 24 * 60 * 60 * 1000;
-        if (now.getTime() - last.getTime() > oneDayMs) {
-          usedToday = 0;
-        }
-      }
-      const dailyLeft = Math.max(0, FREE_USER_API_LIMIT - usedToday);
-      const ideasLeft = Math.max(0, FREE_USER_IDEA_LIMIT - (data.ideaCount ?? 0));
-  
-      return { role, dailyLeft, ideasLeft, error: null };
-    } catch (e) {
-      console.error('getUserUsage error:', e);
-      return { role: 'free', dailyLeft: 0, ideasLeft: 0, error: 'Failed to fetch usage' };
+  role: 'free' | 'paid';
+  dailyLeft: number | null;   // null이면 무제한
+  ideasLeft: number | null;   // null이면 무제한
+  error?: string | null;
+}> {
+  try {
+    console.log('🔍 getUserUsage 시작:', { userId });
+    
+    const { data, error } = await getUserData(userId);
+    if (error || !data) {
+      console.error('❌ getUserData 실패:', { error, data });
+      return { role: 'free', dailyLeft: 0, ideasLeft: 0, error: error ?? 'User not found' };
     }
+
+    console.log('📊 사용자 데이터:', {
+      role: data.role,
+      apiRequestCount: data.apiRequestCount,
+      ideaCount: data.ideaCount,
+      lastApiRequestDate: data.lastApiRequestDate
+    });
+
+    const role = data.role ?? 'free';
+
+    if (role === 'paid') {
+      console.log('✅ 유료 사용자 - 무제한 반환');
+      return { role, dailyLeft: null, ideasLeft: null, error: null }; // 무제한
+    }
+
+    // ✅ 무료 사용자 사용량 계산 로직 개선
+    const now = new Date();
+    const last = data.lastApiRequestDate;
+    let usedToday = data.apiRequestCount ?? 0;
+    
+    // ✅ 일일 사용량 리셋 로직 개선
+    if (last) {
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const timeDiff = now.getTime() - last.getTime();
+      
+      console.log('📅 일일 리셋 체크:', {
+        now: now.toISOString(),
+        last: last.toISOString(),
+        timeDiff: timeDiff,
+        oneDayMs: oneDayMs,
+        shouldReset: timeDiff > oneDayMs
+      });
+      
+      if (timeDiff > oneDayMs) {
+        console.log('🔄 일일 사용량 리셋');
+        usedToday = 0;
+      }
+    } else {
+      // ✅ lastApiRequestDate가 null인 경우 (새 사용자) - 사용량 0으로 시작
+      console.log('🆕 새 사용자 또는 첫 사용 - 사용량 0으로 시작');
+      usedToday = 0;
+    }
+
+    const dailyLeft = Math.max(0, FREE_USER_API_LIMIT - usedToday);
+    const totalIdeasUsed = data.ideaCount ?? 0;
+    const ideasLeft = Math.max(0, FREE_USER_IDEA_LIMIT - totalIdeasUsed);
+
+    const result = {
+      role,
+      dailyLeft,
+      ideasLeft,
+      error: null
+    };
+
+    console.log('✅ 사용량 계산 완료:', {
+      ...result,
+      계산과정: {
+        FREE_USER_API_LIMIT,
+        usedToday,
+        dailyLeft,
+        FREE_USER_IDEA_LIMIT,
+        totalIdeasUsed,
+        ideasLeft
+      }
+    });
+
+    return result;
+    
+  } catch (e) {
+    console.error('💥 getUserUsage 예외:', e);
+    return { role: 'free', dailyLeft: 0, ideasLeft: 0, error: 'Failed to fetch usage' };
   }
+}
   
