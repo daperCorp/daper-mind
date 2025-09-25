@@ -457,6 +457,20 @@ useEffect(() => {
           <span className="hidden sm:inline">{t('generated')}</span>
         </div>
       </div>
+      {/* 커스텀 닫기 버튼 - 우상단에 고정 */}
+      <DialogClose asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white shadow-md border border-gray-200/60 z-50 transition-all duration-200 hover:shadow-lg"
+          onClick={() => handleDialogClose(false)}
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          <span className="sr-only">{t('close')}</span>
+        </Button>
+      </DialogClose>
     </DialogHeader>
 
     <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 overscroll-contain">
@@ -565,13 +579,6 @@ useEffect(() => {
             {t('generateAnother')}
           </Button>
           
-          <Button 
-            variant="outline" 
-            className="flex-1 h-10 text-sm"
-            onClick={() => handleDialogClose(false)}
-          >
-            {t('close')}
-          </Button>
         </div>
       </div>
     </DialogFooter>
