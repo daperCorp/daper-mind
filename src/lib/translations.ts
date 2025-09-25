@@ -238,6 +238,68 @@ export const translations: Translations = {
   regenerating: { English: 'Regenerating...', Korean: '재생성 중...' },
   deleteIdea: { English: 'Delete Idea', Korean: '아이디어 삭제' },
   unfavorite: { English: 'Unfavorite', Korean: '즐겨찾기 해제' },
+// 업그레이드 페이지용 번역 키들을 translations.ts에 추가:
+
+  // Back navigation
+  back: { English: 'Back', Korean: '뒤로' },
+  
+  // Upgrade page - Already Premium
+  alreadyPremium: { English: "You're Already Premium!", Korean: '이미 프리미엄입니다!' },
+  alreadyPremiumDescription: { English: 'You have unlimited access to all features. Enjoy creating without limits!', Korean: '모든 기능에 무제한으로 액세스할 수 있습니다. 제한 없이 창작을 즐기세요!' },
+  generateIdeas: { English: 'Generate Ideas', Korean: '아이디어 생성' },
+  viewArchive: { English: 'View Archive', Korean: '보관함 보기' },
+  
+  // Hero section
+  unlockCreativePotential: { English: 'Unlock Your Creative Potential', Korean: '창의적 잠재력을 깨워보세요' },
+  upgradeToPremium: { English: 'Upgrade to Premium', Korean: '프리미엄으로 업그레이드' },
+  upgradeToPremiumDescription: { English: 'Remove all limits and unlock the full power of AI-driven idea generation. Create without boundaries.', Korean: '모든 제한을 해제하고 AI 기반 아이디어 생성의 전체 파워를 잠금 해제하세요. 경계 없이 창작하세요.' },
+  currentUsage: { English: 'Current Usage', Korean: '현재 사용량' },
+  daily: { English: 'Daily', Korean: '일일' },
+  total: { English: 'Total', Korean: '총계' },
+  
+  // Pricing plans
+  foreverFree: { English: 'Forever free', Korean: '영원히 무료' },
+  twoIdeasPerDay: { English: '2 ideas per day', Korean: '일일 2개 아이디어' },
+  fiveTotalSavedIdeas: { English: '5 total saved ideas', Korean: '총 5개 저장된 아이디어' },
+  basicIdeaOutlines: { English: 'Basic idea outlines', Korean: '기본 아이디어 개요' },
+  archiveAndFavorites: { English: 'Archive & favorites', Korean: '보관함 및 즐겨찾기' },
+  recommended: { English: 'Recommended', Korean: '추천' },
+  premiumPlan: { English: 'Premium Plan', Korean: '프리미엄 플랜' },
+  perMonth: { English: 'per month', Korean: '월' },
+  unlimitedIdeasPerDay: { English: 'Unlimited ideas per day', Korean: '일일 무제한 아이디어' },
+  unlimitedSavedIdeas: { English: 'Unlimited saved ideas', Korean: '무제한 저장된 아이디어' },
+  advancedMindMapping: { English: 'Advanced mind mapping', Korean: '고급 마인드맵' },
+  priorityAiProcessing: { English: 'Priority AI processing', Korean: '우선순위 AI 처리' },
+  exportSharingFeatures: { English: 'Export & sharing features', Korean: '내보내기 및 공유 기능' },
+  
+  // Features section
+  whyUpgrade: { English: 'Why Upgrade?', Korean: '왜 업그레이드해야 할까요?' },
+  unlimitedIdeaGeneration: { English: 'Unlimited Idea Generation', Korean: '무제한 아이디어 생성' },
+  unlimitedIdeaGenerationDesc: { English: 'Create as many ideas as you want, whenever inspiration strikes', Korean: '영감이 떠오를 때마다 원하는 만큼 아이디어를 생성하세요' },
+  noDailyLimits: { English: 'No Daily Limits', Korean: '일일 제한 없음' },
+  noDailyLimitsDesc: { English: 'Generate ideas 24/7 without waiting for resets', Korean: '리셋을 기다리지 않고 24시간 내내 아이디어를 생성하세요' },
+  advancedAiFeatures: { English: 'Advanced AI Features', Korean: '고급 AI 기능' },
+  advancedAiFeaturesDesc: { English: 'Access to enhanced mind mapping and detailed outlines', Korean: '향상된 마인드맵과 상세한 개요에 액세스' },
+  prioritySupportDesc: { English: 'Get help faster with dedicated customer support', Korean: '전담 고객 지원을 통해 더 빠른 도움을 받으세요' },
+  
+  // FAQ section
+  frequentlyAskedQuestions: { English: 'Frequently Asked Questions', Korean: '자주 묻는 질문' },
+  canICancelAnytime: { English: 'Can I cancel anytime?', Korean: '언제든지 취소할 수 있나요?' },
+  canICancelAnytimeAnswer: { English: 'Yes, you can cancel your subscription at any time. You\'ll continue to have premium access until the end of your billing period.', Korean: '네, 언제든지 구독을 취소할 수 있습니다. 결제 주기가 끝날 때까지 프리미엄 액세스를 계속 이용할 수 있습니다.' },
+  whatHappensIfIDowngrade: { English: 'What happens to my ideas if I downgrade?', Korean: '다운그레이드하면 내 아이디어는 어떻게 되나요?' },
+  whatHappensIfIDowngradeAnswer: { English: 'All your existing ideas remain accessible. You\'ll just be limited to the free plan restrictions for new idea generation.', Korean: '기존의 모든 아이디어는 계속 액세스할 수 있습니다. 새로운 아이디어 생성에 대해서만 무료 플랜 제한이 적용됩니다.' },
+  isThereAFreeTrial: { English: 'Is there a free trial?', Korean: '무료 체험이 있나요?' },
+  isThereAFreeTrialAnswer: { English: 'You can try the free plan to get a feel for the service. We\'re confident you\'ll love the premium features once you upgrade!', Korean: '무료 플랜으로 서비스를 체험해볼 수 있습니다. 업그레이드하시면 프리미엄 기능을 마음에 들어 하실 것을 확신합니다!' },
+  
+  // Bottom CTA
+  readyToUnlockCreativity: { English: 'Ready to unlock unlimited creativity?', Korean: '무제한 창의력을 잠금 해제할 준비가 되셨나요?' },
+  joinThousandsOfCreators: { English: 'Join thousands of creators who\'ve upgraded to premium', Korean: '프리미엄으로 업그레이드한 수천 명의 창작자와 함께하세요' },
+  startPremiumJourney: { English: 'Start Your Premium Journey', Korean: '프리미엄 여정을 시작하세요' },
+  
+  // Additional missing keys
+  removeFromFavorites: { English: 'Remove from favorites', Korean: '즐겨찾기에서 제거' },
+  fetchingYourFavorites: { English: 'Fetching your favorite ideas...', Korean: '즐겨찾는 아이디어를 불러오는 중...' },
+
 };
 
 // ✅ 언어코드 → 사전에 쓰는 키로 매핑
