@@ -83,7 +83,7 @@ const dailyPct = role === 'free' && typeof dailyLeft === 'number'
   ? safePct((ideasUsed   / dailyMax) * 100)
   : 0;
 const ideasPct = role === 'free' && typeof ideasLeft === 'number'
-  ? safePct((ideasUsed   / ideasMax) * 100)
+  ? safePct((ideasLeft   / ideasMax) * 100)
   : 0;
 
   return (
@@ -151,7 +151,7 @@ const ideasPct = role === 'free' && typeof ideasLeft === 'number'
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">{translations.ideasLeft?.[language] ?? 'Ideas left'}</span>
                 <span className="text-muted-foreground">
-                  {ideasUsed}/{ideasMax}
+                  {ideasLeft}/{ideasMax}
                 </span>
               </div>
               <Progress value={ideasPct} />
