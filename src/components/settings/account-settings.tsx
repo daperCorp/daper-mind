@@ -135,7 +135,7 @@ const ideasPct = role === 'free' && typeof ideasLeft === 'number'
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">{translations.dailyLeft?.[language] ?? 'Daily left'}</span>
                 <span className="text-muted-foreground">
-                {dailyUsed}/{dailyMax}
+                {dailyLeft}/{dailyMax}
                 </span>
               </div>
               <Progress value={dailyPct} />

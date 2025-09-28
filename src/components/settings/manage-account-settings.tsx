@@ -129,22 +129,15 @@ export function ManageAccountSettings() {
               <Button onClick={() => router.push('/upgrade')}>
                 {t('upgradePlan') || 'Upgrade plan'}
               </Button>
-              <Button variant="outline" onClick={() => router.push('/pricing')}>
-                {t('viewPricing') || 'View pricing'}
-              </Button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Button onClick={() => router.push('/billing')}>
-                {t('manageBilling') || 'Manage billing'}
-              </Button>
               <Button variant="outline" onClick={() => router.push('/upgrade')}>
                 {t('changePlan') || 'Change plan'}
               </Button>
             </div>
           )}
         </div>
-
         {/* 고객지원 */}
         <div className="rounded-md border p-4">
           <h3 className="font-medium">{t('contactSupport')}</h3>
