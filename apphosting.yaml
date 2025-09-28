@@ -7,7 +7,7 @@ runConfig:
 env:
   # Configure environment variables.
   - variable: GOOGLE_GENAI_API_KEY
-    value: AIzaSyDCsln7hN32uhwhIno9VnTUVEXIQyJjJPs
+    value: AIzaSyDIwjdrBOefdTHwLQlQNlaS-BblntQc9qs
     availability:
       - BUILD
       - RUNTIME
