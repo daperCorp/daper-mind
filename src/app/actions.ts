@@ -976,4 +976,146 @@ export async function getUserUsage(userId: string): Promise<{
     return { role: 'free', dailyLeft: 0, ideasLeft: 0, error: 'Failed to fetch usage' };
   }
 }
+
+export async function updateIdeaContent(
+  ideaId: string,
+  updates: {
+    title?: string;
+    summary?: string;
+    outline?: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!ideaId) {
+      return { success: false, error: 'Idea ID is required.' };
+    }
+
+    // 업데이트할 필드 검증
+    const allowedFields = ['title', 'summary', 'outline'];
+    const updateData: any = {};
+    
+    for (const [key, value] of Object.entries(updates)) {
+      if (allowedFields.includes(key) && value !== undefined) {
+        // 기본적인 검증
+        if (typeof value === 'string' && value.trim().length > 0) {
+          updateData[key] = value.trim();
+        } else if (value === '') {
+          // 빈 문자열도 허용 (사용자가 의도적으로 지울 수 있음)
+          updateData[key] = '';
+        }
+      }
+    }
+
+    // 업데이트할 내용이 없으면 에러
+    if (Object.keys(updateData).length === 0) {
+      return { success: false, error: 'No valid fields to update.' };
+    }
+
+    // 수정 시간 추가
+    updateData.updatedAt = serverTimestamp();
+
+    // Firestore 업데이트
+    const ideaRef = doc(db, 'ideas', ideaId);
+    
+    // 문서 존재 확인 후 업데이트
+    const ideaSnap = await getDoc(ideaRef);
+    if (!ideaSnap.exists()) {
+      return { success: false, error: 'Idea not found.' };
+    }
+
+    await updateDoc(ideaRef, updateData);
+
+    // 관련 페이지들 재검증
+    revalidatePath(`/idea/${ideaId}`);
+    revalidatePath('/archive');
+    revalidatePath('/favorites');
+
+    console.log('Idea content updated:', { ideaId, updates: Object.keys(updateData) });
+
+    return { success: true };
+    
+  } catch (error: any) {
+    console.error('Error updating idea content:', error);
+    
+    // 구체적인 에러 메시지 제공
+    let errorMessage = 'Failed to update idea.';
+    
+    if (error.code === 'permission-denied') {
+      errorMessage = 'Permission denied. You can only edit your own ideas.';
+    } else if (error.code === 'not-found') {
+      errorMessage = 'Idea not found.';
+    } else if (error.code === 'unavailable') {
+      errorMessage = 'Service temporarily unavailable. Please try again.';
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+}
+
+// 추가로 권한 검증이 필요한 경우의 개선된 버전
+export async function updateIdeaContentSecure(
+  ideaId: string,
+  userId: string,
+  updates: {
+    title?: string;
+    summary?: string;
+    outline?: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!ideaId || !userId) {
+      return { success: false, error: 'Idea ID and User ID are required.' };
+    }
+
+    const ideaRef = doc(db, 'ideas', ideaId);
+    
+    // 트랜잭션으로 권한 확인 후 업데이트
+    await runTransaction(db, async (transaction) => {
+      const ideaDoc = await transaction.get(ideaRef);
+      
+      if (!ideaDoc.exists()) {
+        throw new Error('Idea not found.');
+      }
+      
+      const ideaData = ideaDoc.data();
+      
+      // 소유자 확인
+      if (ideaData.userId !== userId) {
+        throw new Error('Permission denied. You can only edit your own ideas.');
+      }
+      
+      // 업데이트할 필드 준비
+      const allowedFields = ['title', 'summary', 'outline'];
+      const updateData: any = {};
+      
+      for (const [key, value] of Object.entries(updates)) {
+        if (allowedFields.includes(key) && value !== undefined) {
+          if (typeof value === 'string') {
+            updateData[key] = value.trim();
+          }
+        }
+      }
+      
+      if (Object.keys(updateData).length === 0) {
+        throw new Error('No valid fields to update.');
+      }
+      
+      updateData.updatedAt = serverTimestamp();
+      
+      // 트랜잭션으로 업데이트
+      transaction.update(ideaRef, updateData);
+    });
+
+    // 관련 페이지들 재검증
+    revalidatePath(`/idea/${ideaId}`);
+    revalidatePath('/archive');
+    revalidatePath('/favorites');
+
+    return { success: true };
+    
+  } catch (error: any) {
+    console.error('Error updating idea content:', error);
+    return { success: false, error: error.message || 'Failed to update idea.' };
+  }
+}
   

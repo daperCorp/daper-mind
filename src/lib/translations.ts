@@ -300,6 +300,15 @@ export const translations: Translations = {
   removeFromFavorites: { English: 'Remove from favorites', Korean: '즐겨찾기에서 제거' },
   fetchingYourFavorites: { English: 'Fetching your favorite ideas...', Korean: '즐겨찾는 아이디어를 불러오는 중...' },
 
+
+  addedToFavorites: { English: 'Added to Favorites', Korean: '즐겨찾기에 추가됨' },
+ideaAddedToFavorites: { English: 'Idea has been added to your favorites.', Korean: '아이디어가 즐겨찾기에 추가되었습니다.' },
+failedToUpdateFavorite: { English: 'Failed to update favorite status.', Korean: '즐겨찾기 상태 업데이트에 실패했습니다.' },
+saved: { English: 'Saved', Korean: '저장됨' },
+ideaUpdated: { English: 'Idea has been updated.', Korean: '아이디어가 업데이트되었습니다.' },
+failedToSaveChanges: { English: 'Failed to save changes.', Korean: '변경사항 저장에 실패했습니다.' },
+exported: { English: 'Exported', Korean: '내보내기 완료' },
+save: { English: 'Save', Korean: '저장' },
 };
 
 // ✅ 언어코드 → 사전에 쓰는 키로 매핑
