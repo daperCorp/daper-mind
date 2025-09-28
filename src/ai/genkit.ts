@@ -26,5 +26,5 @@ export const ai = genkit({
       apiKey: apiKey,
     }),
   ],
-  model: 'gemini-2.5-flash',
+  model: 'googleai/gemini-2.5-flash',
 });
