@@ -30,7 +30,7 @@ import {
 } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 import { FREE_USER_API_LIMIT, FREE_USER_IDEA_LIMIT } from '@/lib/constants';
-
+import { nanoid } from 'nanoid';
 /* =========================
  * Schemas & Types
  * =======================*/
@@ -1589,5 +1589,184 @@ export async function getIdeaById(id: string): Promise<{ data: GeneratedIdea | n
   } catch (err) {
     console.error('Error fetching idea:', err);
     return { data: null, error: 'Failed to fetch idea.' };
+  }
+}
+
+/* =========================
+ * Idea Sharing (View Only)
+ * =======================*/
+
+export interface ShareLink {
+  id: string;
+  ideaId: string;
+  ownerId: string;
+  createdAt: Date;
+  expiresAt?: Date;
+  accessCount: number;
+  isActive: boolean;
+}
+
+/**
+ * 공유 링크 생성
+ */
+export async function createShareLink(
+  ideaId: string,
+  expiresInDays?: number
+): Promise<{ data: ShareLink | null; error: string | null }> {
+  try {
+    if (!ideaId) {
+      return { data: null, error: 'Idea ID is required' };
+    }
+
+    // 아이디어 소유자 확인
+    const ideaRef = doc(db, 'ideas', ideaId);
+    const ideaSnap = await getDoc(ideaRef);
+
+    if (!ideaSnap.exists()) {
+      return { data: null, error: 'Idea not found' };
+    }
+
+    const ideaData = ideaSnap.data();
+    const ownerId = ideaData.userId;
+
+    // 공유 링크 생성
+    const shareId = nanoid(12); // 짧고 안전한 ID
+    const now = new Date();
+    const expiresAt = expiresInDays 
+      ? new Date(now.getTime() + expiresInDays * 24 * 60 * 60 * 1000)
+      : undefined;
+
+    const shareLink: ShareLink = {
+      id: shareId,
+      ideaId,
+      ownerId,
+      createdAt: now,
+      expiresAt,
+      accessCount: 0,
+      isActive: true,
+    };
+
+    // Firestore에 저장
+    const shareRef = doc(db, 'shareLinks', shareId);
+    await setDoc(shareRef, {
+      ...shareLink,
+      createdAt: serverTimestamp(),
+      expiresAt: expiresAt ? Timestamp.fromDate(expiresAt) : null,
+    });
+
+    return { data: shareLink, error: null };
+
+  } catch (error: any) {
+    console.error('Error creating share link:', error);
+    return { data: null, error: 'Failed to create share link' };
+  }
+}
+
+/**
+ * 공유 링크로 아이디어 가져오기 (읽기 전용)
+ */
+export async function getIdeaByShareLink(
+  shareId: string
+): Promise<{ 
+  data: GeneratedIdea | null; 
+  error: string | null 
+}> {
+  try {
+    if (!shareId) {
+      return { data: null, error: 'Share ID is required' };
+    }
+
+    // 공유 링크 확인
+    const shareRef = doc(db, 'shareLinks', shareId);
+    const shareSnap = await getDoc(shareRef);
+
+    if (!shareSnap.exists()) {
+      return { data: null, error: 'Share link not found or expired' };
+    }
+
+    const shareData = shareSnap.data() as any;
+
+    // 활성 상태 확인
+    if (!shareData.isActive) {
+      return { data: null, error: 'This share link has been disabled' };
+    }
+
+    // 만료일 확인
+    if (shareData.expiresAt) {
+      const expiresAt = shareData.expiresAt.toDate();
+      if (new Date() > expiresAt) {
+        return { data: null, error: 'This share link has expired' };
+      }
+    }
+
+    // 아이디어 가져오기
+    const { data: idea, error } = await getIdeaById(shareData.ideaId);
+    if (error || !idea) {
+      return { data: null, error: error || 'Idea not found' };
+    }
+
+    // 접근 횟수 증가
+    await updateDoc(shareRef, {
+      accessCount: increment(1),
+      lastAccessedAt: serverTimestamp(),
+    });
+
+    return { data: idea, error: null };
+
+  } catch (error: any) {
+    console.error('Error getting idea by share link:', error);
+    return { data: null, error: 'Failed to access shared idea' };
+  }
+}
+
+/**
+ * 공유 링크 목록 가져오기
+ */
+export async function getShareLinks(
+  ideaId: string
+): Promise<{ data: ShareLink[] | null; error: string | null }> {
+  try {
+    const q = query(
+      collection(db, 'shareLinks'),
+      where('ideaId', '==', ideaId),
+      where('isActive', '==', true)
+    );
+
+    const snap = await getDocs(q);
+    const links = snap.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        createdAt: data.createdAt.toDate(),
+        expiresAt: data.expiresAt ? data.expiresAt.toDate() : undefined,
+      } as ShareLink;
+    });
+
+    return { data: links, error: null };
+
+  } catch (error: any) {
+    console.error('Error fetching share links:', error);
+    return { data: null, error: 'Failed to fetch share links' };
+  }
+}
+
+/**
+ * 공유 링크 비활성화
+ */
+export async function deactivateShareLink(
+  shareId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const shareRef = doc(db, 'shareLinks', shareId);
+    await updateDoc(shareRef, {
+      isActive: false,
+      deactivatedAt: serverTimestamp(),
+    });
+
+    return { success: true };
+
+  } catch (error: any) {
+    console.error('Error deactivating share link:', error);
+    return { success: false, error: 'Failed to deactivate share link' };
   }
 }
