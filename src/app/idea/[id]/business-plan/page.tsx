@@ -6,14 +6,13 @@ import { notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   generateBusinessPlan,
-  
 } from '@/app/actions';
 import { 
     getIdeaById, 
     getUserData,
     saveBusinessPlan,
     exportBusinessPlan
-  } from '@/lib/firebase-client'; // 클라이언트 함수
+  } from '@/lib/firebase-client';
   
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,6 +34,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { OutlineDisplay } from '@/components/outline-display'; // ✅ 추가
 
 export default function BusinessPlanPage({
   params: paramsPromise,
@@ -63,13 +63,11 @@ export default function BusinessPlanPage({
       } else {
         setIdea(data);
 
-        // 사용자 role 확인
         if (data.userId) {
           const { data: userData } = await getUserData(data.userId);
           if (userData) {
             setUserRole(userData.role || 'free');
 
-            // 저장된 사업계획서가 있으면 불러오기
             if (userData.role === 'paid' && data.businessPlan) {
               setBusinessPlan(data.businessPlan);
             }
@@ -107,7 +105,6 @@ export default function BusinessPlanPage({
 
       setBusinessPlan(result);
 
-      // DB에 저장
       await saveBusinessPlan(idea.id!, result);
 
       toast({
@@ -307,7 +304,7 @@ export default function BusinessPlanPage({
                 </div>
               </div>
 
-                              <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
                 <Sparkles className="h-5 w-5 text-purple-600 mt-0.5" />
                 <div>
                   <h3 className="font-semibold">AI 분석 활용</h3>
@@ -433,7 +430,7 @@ export default function BusinessPlanPage({
           </Card>
         </div>
 
-        {/* 메인 콘텐츠 */}
+        {/* 메인 콘텐츠 - ✅ OutlineDisplay 적용 */}
         <div className="lg:col-span-3">
           {activeSection === 'overview' ? (
             // 전체 보기
@@ -446,11 +443,7 @@ export default function BusinessPlanPage({
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="prose max-w-none">
-                      <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                        {section.content}
-                      </pre>
-                    </div>
+                    <OutlineDisplay outline={section.content} />
                   </CardContent>
                 </Card>
               ))}
@@ -465,11 +458,9 @@ export default function BusinessPlanPage({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="prose max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                    {businessPlan.sections.find((s: any) => s.id === activeSection)?.content}
-                  </pre>
-                </div>
+                <OutlineDisplay 
+                  outline={businessPlan.sections.find((s: any) => s.id === activeSection)?.content || ''} 
+                />
               </CardContent>
             </Card>
           )}
