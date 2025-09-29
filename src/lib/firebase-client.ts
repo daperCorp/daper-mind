@@ -565,12 +565,23 @@ import {
         accessCount: 0,
         isActive: true,
       }
-  
+      const ideaData = ideaSnap.data();
+
+      // ✅ 공개로 보여줄 것만 스냅샷
+      const payload = {
+        title: ideaData.title ?? '',
+        summary: ideaData.summary ?? '',
+        outline: ideaData.outline ?? '',
+        mindMap: ideaData.mindMap ?? null,
+        aiAnalysis: ideaData.aiSuggestions ?? '',   // 너가 쓰는 필드명에 맞춰 조정
+        businessPlan: ideaData.businessPlan ?? ''
+      };
       const shareRef = doc(db, 'shareLinks', shareId)
       await setDoc(shareRef, {
         ...shareLink,
         createdAt: serverTimestamp(),
         expiresAt: expiresAt ? Timestamp.fromDate(expiresAt) : null,
+        payload,
       })
   
       return { data: shareLink, error: null }
@@ -641,7 +652,6 @@ import {
       if (!shareSnap.exists()) {
         return { data: null, error: 'Share link not found or expired' };
       }
-  
       const shareData = shareSnap.data() as any;
   
       if (!shareData.isActive) {
@@ -665,7 +675,7 @@ import {
         lastAccessedAt: serverTimestamp(),
       });
   
-      return { data: idea, error: null };
+      return { data: { ...shareData.payload }, error: null };
     } catch (error: any) {
       console.error('Error getting idea by share link:', error);
       return { data: null, error: 'Failed to access shared idea' };
