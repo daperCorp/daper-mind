@@ -10,7 +10,7 @@ import { generateAISuggestions as generateAISuggestionsFlow } from '@/ai/flows/g
 import type { GenerateAISuggestionsOutput } from '@/ai/flows/generate-ai-suggestions';
 import { generateBusinessPlan as generateBusinessPlanFlow } from '@/ai/flows/generate-business-plan';
 import type { GenerateBusinessPlanOutput } from '@/ai/flows/generate-business-plan';
-import { z } from 'zod';
+import { any, z } from 'zod';
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -119,11 +119,14 @@ export async function getUserData(userId: string): Promise<{ data: SerializableU
 }
 
 export async function upsertUser(user: SerializableUser): Promise<{ error: string | null }> {
-  try {
     console.log('👤 upsertUser 시작:', { uid: user.uid });
-    
-    const userRef = doc(db, 'users', user.uid);
+    console.log('받은 user:', user);
+  try {
 
+    const userRef = doc(db, 'users', user.uid);
+    console.log('userRef 생성 완료:', user.uid);
+    
+    console.log('setDoc 호출 시작...');
     // getDoc 제거 - merge: true로 기존 데이터 보존
     await setDoc(
       userRef,
@@ -144,8 +147,10 @@ export async function upsertUser(user: SerializableUser): Promise<{ error: strin
     
     console.log('✅ 사용자 저장 완료');
     return { error: null };
-  } catch (err) {
-    console.error('❌ upsertUser 오류:', err);
+  } catch (err : any) {
+    console.error('upsertUser catch 블록:', err);
+    console.error('에러 코드:', err.code);
+    console.error('에러 메시지:', err.message);
     return { error: 'Failed to save user data.' };
   }
 }
