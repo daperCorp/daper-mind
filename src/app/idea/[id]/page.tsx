@@ -551,7 +551,7 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
                 </ul>
 
                 <Button 
-                  onClick={() => router.push('/pricing')}
+                  onClick={() => router.push('/upgrade')}
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                   size="lg"
                 >
