@@ -19,7 +19,7 @@ import {
   import type { GenerateAISuggestionsOutput } from '@/ai/flows/generate-ai-suggestions';
   import type { GenerateBusinessPlanOutput } from '@/ai/flows/generate-business-plan';
   import { nanoid } from 'nanoid';
-  
+  import { getAuth } from 'firebase/auth' 
   /* =========================
    * Types
    * =======================*/
@@ -536,46 +536,47 @@ import {
   ): Promise<{ data: ShareLink | null; error: string | null }> {
     try {
       if (!ideaId) {
-        return { data: null, error: 'Idea ID is required' };
+        return { data: null, error: 'Idea ID is required' }
       }
   
-      const ideaRef = doc(db, 'ideas', ideaId);
-      const ideaSnap = await getDoc(ideaRef);
-  
+      const ideaRef = doc(db, 'ideas', ideaId)
+      const ideaSnap = await getDoc(ideaRef)
       if (!ideaSnap.exists()) {
-        return { data: null, error: 'Idea not found' };
+        return { data: null, error: 'Idea not found' }
       }
   
-      const ideaData = ideaSnap.data();
-      const ownerId = ideaData.userId;
+      // ✅ 현재 로그인 사용자로 ownerId 고정(규칙 충족)
+      const auth = getAuth()
+      const user = auth.currentUser
+      if (!user) return { data: null, error: 'NOT_AUTHENTICATED' }
+      const ownerId = user.uid
   
-      const shareId = nanoid(12);
-      const now = new Date();
-      const expiresAt = expiresInDays 
-        ? new Date(now.getTime() + expiresInDays * 24 * 60 * 60 * 1000)
-        : undefined;
+      const shareId = nanoid(12)
+      const now = new Date()
+      const expiresAt =
+        expiresInDays ? new Date(now.getTime() + expiresInDays * 24 * 60 * 60 * 1000) : undefined
   
       const shareLink: ShareLink = {
         id: shareId,
         ideaId,
-        ownerId,
+        ownerId,                           // ✅ 변경
         createdAt: now,
         expiresAt,
         accessCount: 0,
         isActive: true,
-      };
+      }
   
-      const shareRef = doc(db, 'shareLinks', shareId);
+      const shareRef = doc(db, 'shareLinks', shareId)
       await setDoc(shareRef, {
         ...shareLink,
         createdAt: serverTimestamp(),
         expiresAt: expiresAt ? Timestamp.fromDate(expiresAt) : null,
-      });
+      })
   
-      return { data: shareLink, error: null };
+      return { data: shareLink, error: null }
     } catch (error: any) {
-      console.error('Error creating share link:', error);
-      return { data: null, error: 'Failed to create share link' };
+      console.error('Error creating share link:', error)
+      return { data: null, error: 'Failed to create share link' }
     }
   }
   
