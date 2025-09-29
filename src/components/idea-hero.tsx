@@ -49,8 +49,7 @@ export default function IdeaHero() {
   const [open, setOpen] = useState(false);
   const [idea, setIdea] = useState('');
   const [pending, setPending] = useState(false);
-  const formRef = useRef<HTMLFormForm>(null);
-  
+  const formRef = useRef<HTMLFormElement>(null);
   // 🔹 중복 저장 방지용 refs
   const requestIdRef = useRef<string>(generateRequestId());
   const requestIdInputRef = useRef<HTMLInputElement>(null);
