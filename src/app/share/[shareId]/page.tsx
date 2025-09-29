@@ -1,5 +1,3 @@
-// app/share/[shareId]/page.tsx
-
 'use client';
 
 import { useEffect, useState, use } from 'react';
@@ -9,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Eye, AlertCircle, Share2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export default function SharedIdeaPage({
   params: paramsPromise,
@@ -19,24 +16,32 @@ export default function SharedIdeaPage({
   const params = use(paramsPromise);
   const [idea, setIdea] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const shareId = params.shareId;
     if (!shareId) return;
 
     async function fetchSharedIdea() {
-      const { data, error } = await getIdeaByShareLink(shareId);
+      try {
+        const { data, error } = await getIdeaByShareLink(shareId);
 
-      if (error || !data) {
-        notFound();
-      } else {
-        setIdea(data);
+        if (error || !data) {
+          setError(error || 'Share link not found');
+          notFound();
+        } else {
+          setIdea(data);
+        }
+      } catch (err: any) {
+        console.error('Fetch error:', err);
+        setError(err.message || 'Failed to load shared idea');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
 
     fetchSharedIdea();
-  }, [params]);
+  }, [params.shareId]);
 
   if (loading) {
     return (
@@ -48,7 +53,25 @@ export default function SharedIdeaPage({
     );
   }
 
-  if (!idea) return null;
+  if (error || !idea) {
+    return (
+      <div className="mx-auto max-w-4xl p-4 md:p-6">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-red-900">오류</h3>
+                <p className="text-sm text-red-800">
+                  {error || '공유 링크를 찾을 수 없습니다.'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 p-4 md:p-6">
@@ -70,7 +93,9 @@ export default function SharedIdeaPage({
 
       {/* 제목 */}
       <div>
-        <h1 className="text-3xl font-bold text-primary">{idea.title}</h1>
+        <h1 className="text-3xl font-bold text-primary">
+          {String(idea.title || '제목 없음')}
+        </h1>
         <p className="text-muted-foreground mt-2 flex items-center gap-2">
           <Share2 className="h-4 w-4" />
           공유된 아이디어
@@ -83,7 +108,9 @@ export default function SharedIdeaPage({
           <CardTitle>요약</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground leading-relaxed">{idea.summary}</p>
+          <p className="text-muted-foreground leading-relaxed">
+            {String(idea.summary || '요약 없음')}
+          </p>
         </CardContent>
       </Card>
 
@@ -94,7 +121,7 @@ export default function SharedIdeaPage({
         </CardHeader>
         <CardContent>
           <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-muted-foreground">
-            {idea.outline}
+            {String(idea.outline || '상세 계획 없음')}
           </pre>
         </CardContent>
       </Card>
@@ -107,7 +134,9 @@ export default function SharedIdeaPage({
           </CardHeader>
           <CardContent>
             <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-muted-foreground">
-              {idea.mindMap}
+              {typeof idea.mindMap === 'string' 
+                ? idea.mindMap 
+                : JSON.stringify(idea.mindMap, null, 2)}
             </pre>
           </CardContent>
         </Card>
