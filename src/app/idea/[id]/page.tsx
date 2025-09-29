@@ -10,7 +10,8 @@ import {
   updateIdeaContent,
   generateAISuggestions,
   saveAISuggestions,
-  getUserData
+  getUserData,
+  createShareLink
 } from '@/app/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { OutlineDisplay } from '@/components/outline-display';
@@ -118,11 +119,38 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
   // 자동 AI 분석 실행 제거 - useEffect 삭제
 
   const handleShare = async () => {
+    if (!idea?.id) return;
+    
     try {
-      await navigator.clipboard.writeText(window.location.href);
-      toast({ title: 'Success', description: t('linkCopied') });
-    } catch (err) {
-      toast({ variant: 'destructive', title: 'Error', description: t('linkCopyError') });
+      // 공유 링크 생성 다이얼로그 표시
+      const createLink = window.confirm('이 아이디어의 공유 링크를 생성하시겠습니까?');
+      
+      if (!createLink) return;
+      
+      // 공유 링크 생성
+      const { data: shareLink, error } = await createShareLink(idea.id);
+      
+      if (error || !shareLink) {
+        throw new Error(error || '공유 링크 생성에 실패했습니다');
+      }
+      
+      // 공유 링크 URL 생성
+      const shareUrl = `${window.location.origin}/share/${shareLink.id}`;
+      
+      // 클립보드에 복사
+      await navigator.clipboard.writeText(shareUrl);
+      
+      toast({ 
+        title: '공유 링크 생성 완료', 
+        description: '링크가 클립보드에 복사되었습니다. 이 링크는 읽기 전용입니다.' 
+      });
+    } catch (err: any) {
+      console.error('Share error:', err);
+      toast({ 
+        variant: 'destructive', 
+        title: '오류', 
+        description: err.message || '공유 링크 생성에 실패했습니다.' 
+      });
     }
   };
 
