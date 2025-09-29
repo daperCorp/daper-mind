@@ -66,17 +66,37 @@ import {
   export async function upsertUserClient(user: SerializableUser) {
     const userRef = doc(db, 'users', user.uid);
     
-    await setDoc(userRef, {
-      uid: user.uid,
-      email: user.email ?? null,
-      displayName: user.displayName ?? null,
-      photoURL: user.photoURL ?? null,
-      lastLogin: serverTimestamp(),
-      role: 'free',
-      ideaCount: 0,
-      apiRequestCount: 0,
-      lastApiRequestDate: null,
-    }, { merge: true });
+    try {
+      await runTransaction(db, async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        
+        if (userDoc.exists()) {
+          // 기존 사용자: 프로필 정보만 업데이트
+          transaction.update(userRef, {
+            email: user.email ?? null,
+            displayName: user.displayName ?? null,
+            photoURL: user.photoURL ?? null,
+            lastLogin: serverTimestamp(),
+          });
+        } else {
+          // 신규 사용자: 전체 초기화
+          transaction.set(userRef, {
+            uid: user.uid,
+            email: user.email ?? null,
+            displayName: user.displayName ?? null,
+            photoURL: user.photoURL ?? null,
+            lastLogin: serverTimestamp(),
+            role: 'free',
+            ideaCount: 0,
+            apiRequestCount: 0,
+            lastApiRequestDate: null,
+          });
+        }
+      });
+    } catch (err) {
+      console.error('Error upserting user:', err);
+      throw err;
+    }
   }
   
   export async function getUserData(userId: string): Promise<{ 
