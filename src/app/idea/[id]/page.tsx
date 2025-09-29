@@ -61,6 +61,7 @@ import {
 } from '@/components/ui/dialog';
 import { useAuth } from '@/context/auth-context';
 
+
 export default function IdeaDetailPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = use(paramsPromise);
   const [idea, setIdea] = useState<GeneratedIdea | null>(null);
@@ -674,6 +675,130 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
           ))}
         </div>
       ) : null}
+
+// 기존 idea/[id]/page.tsx의 AI 개선 제안 섹션 바로 다음에 추가
+
+{/* 사업계획서 섹션 - AI 개선 제안 다음에 추가 */}
+{userRole === 'paid' && (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <FileText className="h-5 w-5" />
+        사업계획서
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <p className="text-muted-foreground">
+        전문가 수준의 사업계획서를 AI가 자동으로 작성해드립니다. 
+        투자 유치와 사업 실행을 위한 완벽한 문서를 만들어보세요.
+      </p>
+
+      {idea.businessPlan ? (
+        // 이미 생성된 사업계획서가 있을 때
+        <div className="space-y-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h4 className="font-semibold text-green-900">사업계획서 생성 완료</h4>
+                <p className="text-sm text-green-800">
+                  {idea.businessPlanGeneratedAt && 
+                    `생성일: ${new Date(idea.businessPlanGeneratedAt).toLocaleDateString()}`
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="p-3 bg-gray-50 rounded">
+              <p className="text-muted-foreground">타겟 시장</p>
+              <p className="font-semibold">{idea.businessPlan.metadata.targetMarket}</p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded">
+              <p className="text-muted-foreground">필요 자금</p>
+              <p className="font-semibold">{idea.businessPlan.metadata.fundingNeeded}</p>
+            </div>
+          </div>
+
+          <Button asChild className="w-full">
+            <Link href={`/idea/${idea.id}/business-plan`}>
+              <FileText className="mr-2 h-4 w-4" />
+              사업계획서 보기
+            </Link>
+          </Button>
+        </div>
+      ) : (
+        // 아직 생성되지 않았을 때
+        <div className="space-y-4">
+          <div className="grid gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-blue-600" />
+              <span>10개 핵심 섹션 (경영진 요약, 시장 분석, 재무 계획 등)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-blue-600" />
+              <span>3년 재무 전망 및 투자 계획</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-blue-600" />
+              <span>18개월 실행 로드맵</span>
+            </div>
+          </div>
+
+          <Button asChild className="w-full" variant="default">
+            <Link href={`/idea/${idea.id}/business-plan`}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              사업계획서 생성하기
+            </Link>
+          </Button>
+        </div>
+      )}
+    </CardContent>
+  </Card>
+)}
+
+{/* Free 사용자용 사업계획서 미리보기 */}
+{userRole === 'free' && (
+  <Card className="relative overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-white z-10 pointer-events-none" />
+    <CardHeader>
+      <div className="flex items-center justify-between">
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          사업계획서
+        </CardTitle>
+        <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+          <Crown className="h-3 w-3 mr-1" />
+          PRO
+        </Badge>
+      </div>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <p className="text-muted-foreground opacity-60">
+        전문가 수준의 사업계획서를 AI가 작성해드립니다.
+      </p>
+
+      <div className="space-y-2 opacity-40 blur-sm">
+        <div className="h-4 bg-gray-200 rounded w-full"></div>
+        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+        <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+      </div>
+
+      <div className="relative z-20 text-center pt-4">
+        <Button 
+          onClick={() => router.push('/pricing')}
+          className="bg-gradient-to-r from-purple-600 to-blue-600"
+        >
+          <Crown className="mr-2 h-4 w-4" />
+          Pro로 업그레이드
+        </Button>
+      </div>
+    </CardContent>
+  </Card>
+)}
+
+
 
       {/* 마인드맵 미리보기 다이얼로그 */}
       <Dialog open={showMindMapPreview} onOpenChange={setShowMindMapPreview}>

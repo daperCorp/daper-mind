@@ -8,6 +8,8 @@ import { generateIdeaMindMap, type MindMapNode } from '@/ai/flows/generate-idea-
 import { generateMindMapNode } from '@/ai/flows/generate-mindmap-node';
 import { generateAISuggestions as generateAISuggestionsFlow } from '@/ai/flows/generate-ai-suggestions';
 import type { GenerateAISuggestionsOutput } from '@/ai/flows/generate-ai-suggestions';
+import { generateBusinessPlan as generateBusinessPlanFlow } from '@/ai/flows/generate-business-plan';
+import type { GenerateBusinessPlanOutput } from '@/ai/flows/generate-business-plan';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import {
@@ -1279,21 +1281,288 @@ export async function getAISuggestions(
   }
 }
 
-// GeneratedIdea 타입에 aiSuggestions 추가
+// // GeneratedIdea 타입에 aiSuggestions 추가
+// export type GeneratedIdea = {
+//   id?: string;
+//   title: string;
+//   summary: string;
+//   outline: string;
+//   mindMap?: MindMapNode;
+//   aiSuggestions?: GenerateAISuggestionsOutput; // ✅ 추가
+//   favorited?: boolean;
+//   createdAt?: Date;
+//   userId?: string;
+//   language?: 'English' | 'Korean';
+// };
+
+// // getIdeaById 함수 업데이트 (aiSuggestions 포함)
+// export async function getIdeaById(id: string): Promise<{ data: GeneratedIdea | null; error: string | null }> {
+//   try {
+//     const ref = doc(db, 'ideas', id);
+//     const snap = await getDoc(ref);
+
+//     if (!snap.exists()) return { data: null, error: 'Idea not found.' };
+
+//     const data = snap.data() as any;
+//     const idea: GeneratedIdea = {
+//       id: snap.id,
+//       title: data.title,
+//       summary: data.summary,
+//       outline: data.outline,
+//       mindMap: data.mindMap,
+//       aiSuggestions: data.aiSuggestions, // ✅ 추가
+//       favorited: data.favorited,
+//       createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
+//       userId: data.userId,
+//       language: data.language || 'English',
+//     };
+//     return { data: idea, error: null };
+//   } catch (err) {
+//     console.error('Error fetching idea:', err);
+//     return { data: null, error: 'Failed to fetch idea.' };
+//   }
+// }
+
+
+/* =========================
+ * Business Plan (Premium Feature)
+ * =======================*/
+
+/**
+ * 사업계획서 생성 (유료 사용자 전용)
+ */
+export async function generateBusinessPlan(input: {
+  ideaId: string;
+  title: string;
+  summary: string;
+  outline: string;
+  aiSuggestions?: any;
+  language: 'English' | 'Korean';
+}): Promise<GenerateBusinessPlanOutput> {
+  try {
+    const { ideaId, title, summary, outline, aiSuggestions, language } = input;
+
+    // 1. 아이디어 소유자 확인
+    const ideaRef = doc(db, 'ideas', ideaId);
+    const ideaSnap = await getDoc(ideaRef);
+    
+    if (!ideaSnap.exists()) {
+      throw new Error('Idea not found');
+    }
+
+    const ideaData = ideaSnap.data();
+    const userId = ideaData.userId;
+
+    // 2. 사용자 권한 확인
+    const { data: userData, error: userError } = await getUserData(userId);
+    if (userError || !userData) {
+      throw new Error('User not found');
+    }
+
+    if ((userData.role ?? 'free') !== 'paid') {
+      throw new Error('Premium feature - Upgrade to Pro plan to generate business plans');
+    }
+
+    // 3. 사업계획서 생성
+    const result = await generateBusinessPlanFlow({
+      ideaId,
+      title,
+      summary,
+      outline,
+      aiSuggestions,
+      language,
+    });
+
+    return result;
+  } catch (error: any) {
+    console.error('Error generating business plan:', error);
+    throw error;
+  }
+}
+
+/**
+ * 사업계획서를 Firebase에 저장
+ */
+export async function saveBusinessPlan(
+  ideaId: string,
+  businessPlan: GenerateBusinessPlanOutput
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!ideaId) {
+      return { success: false, error: 'Idea ID is required' };
+    }
+
+    const ideaRef = doc(db, 'ideas', ideaId);
+    
+    // 트랜잭션으로 안전하게 업데이트
+    await runTransaction(db, async (transaction) => {
+      const ideaDoc = await transaction.get(ideaRef);
+      
+      if (!ideaDoc.exists()) {
+        throw new Error('Idea not found');
+      }
+
+      const ideaData = ideaDoc.data();
+      const userId = ideaData.userId;
+
+      // 사용자 권한 재확인
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await transaction.get(userRef);
+      
+      if (!userDoc.exists()) {
+        throw new Error('User not found');
+      }
+
+      const userData = userDoc.data();
+      if ((userData.role ?? 'free') !== 'paid') {
+        throw new Error('Premium feature - Upgrade to Pro plan');
+      }
+
+      // 사업계획서 저장
+      transaction.update(ideaRef, {
+        businessPlan: businessPlan,
+        businessPlanGeneratedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    });
+
+    // 캐시 무효화
+    revalidatePath(`/idea/${ideaId}`);
+    revalidatePath(`/idea/${ideaId}/business-plan`);
+
+    console.log('Business plan saved successfully:', ideaId);
+    return { success: true };
+
+  } catch (error: any) {
+    console.error('Error saving business plan:', error);
+    
+    let errorMessage = 'Failed to save business plan';
+    if (error.message?.includes('Premium feature')) {
+      errorMessage = error.message;
+    } else if (error.message?.includes('not found')) {
+      errorMessage = error.message;
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
+ * 저장된 사업계획서 가져오기
+ */
+export async function getBusinessPlan(
+  ideaId: string
+): Promise<{ data: GenerateBusinessPlanOutput | null; error: string | null }> {
+  try {
+    if (!ideaId) {
+      return { data: null, error: 'Idea ID is required' };
+    }
+
+    const ideaRef = doc(db, 'ideas', ideaId);
+    const ideaSnap = await getDoc(ideaRef);
+
+    if (!ideaSnap.exists()) {
+      return { data: null, error: 'Idea not found' };
+    }
+
+    const ideaData = ideaSnap.data();
+    const businessPlan = ideaData.businessPlan as GenerateBusinessPlanOutput | undefined;
+
+    if (!businessPlan) {
+      return { data: null, error: null }; // 아직 생성되지 않음
+    }
+
+    return { data: businessPlan, error: null };
+
+  } catch (error: any) {
+    console.error('Error fetching business plan:', error);
+    return { data: null, error: 'Failed to fetch business plan' };
+  }
+}
+
+/**
+ * 사업계획서 PDF 내보내기용 포맷된 텍스트
+ */
+export async function exportBusinessPlan(
+  ideaId: string,
+  format: 'markdown' | 'text' = 'markdown'
+): Promise<{ content: string | null; error: string | null }> {
+  try {
+    const { data: businessPlan, error } = await getBusinessPlan(ideaId);
+    
+    if (error || !businessPlan) {
+      return { content: null, error: error || 'Business plan not found' };
+    }
+
+    const { data: idea } = await getIdeaById(ideaId);
+    if (!idea) {
+      return { content: null, error: 'Idea not found' };
+    }
+
+    let content = '';
+
+    if (format === 'markdown') {
+      content = `# ${idea.title} - 사업계획서\n\n`;
+      content += `생성일: ${new Date().toLocaleDateString()}\n\n`;
+      content += `---\n\n`;
+      
+      businessPlan.sections.forEach(section => {
+        content += `## ${section.title}\n\n`;
+        content += `${section.content}\n\n`;
+        content += `---\n\n`;
+      });
+
+      content += `## 메타데이터\n\n`;
+      content += `- **타겟 시장**: ${businessPlan.metadata.targetMarket}\n`;
+      content += `- **비즈니스 모델**: ${businessPlan.metadata.businessModel}\n`;
+      content += `- **필요 자금**: ${businessPlan.metadata.fundingNeeded}\n`;
+      content += `- **시장 출시**: ${businessPlan.metadata.timeToMarket}\n`;
+    } else {
+      // Plain text format
+      content = `${idea.title} - 사업계획서\n`;
+      content += `생성일: ${new Date().toLocaleDateString()}\n\n`;
+      content += `${'='.repeat(60)}\n\n`;
+      
+      businessPlan.sections.forEach(section => {
+        content += `${section.title}\n`;
+        content += `${'-'.repeat(section.title.length)}\n\n`;
+        content += `${section.content}\n\n`;
+        content += `${'='.repeat(60)}\n\n`;
+      });
+
+      content += `메타데이터\n`;
+      content += `${'-'.repeat(10)}\n\n`;
+      content += `타겟 시장: ${businessPlan.metadata.targetMarket}\n`;
+      content += `비즈니스 모델: ${businessPlan.metadata.businessModel}\n`;
+      content += `필요 자금: ${businessPlan.metadata.fundingNeeded}\n`;
+      content += `시장 출시: ${businessPlan.metadata.timeToMarket}\n`;
+    }
+
+    return { content, error: null };
+
+  } catch (error: any) {
+    console.error('Error exporting business plan:', error);
+    return { content: null, error: 'Failed to export business plan' };
+  }
+}
+
+// GeneratedIdea 타입에 businessPlan 필드 추가
 export type GeneratedIdea = {
   id?: string;
   title: string;
   summary: string;
   outline: string;
   mindMap?: MindMapNode;
-  aiSuggestions?: GenerateAISuggestionsOutput; // ✅ 추가
+  aiSuggestions?: any;
+  businessPlan?: GenerateBusinessPlanOutput; // ✅ 추가
+  businessPlanGeneratedAt?: Date; // ✅ 추가
   favorited?: boolean;
   createdAt?: Date;
   userId?: string;
   language?: 'English' | 'Korean';
 };
 
-// getIdeaById 함수 업데이트 (aiSuggestions 포함)
+// getIdeaById 함수 업데이트 (businessPlan 포함)
 export async function getIdeaById(id: string): Promise<{ data: GeneratedIdea | null; error: string | null }> {
   try {
     const ref = doc(db, 'ideas', id);
@@ -1308,7 +1577,9 @@ export async function getIdeaById(id: string): Promise<{ data: GeneratedIdea | n
       summary: data.summary,
       outline: data.outline,
       mindMap: data.mindMap,
-      aiSuggestions: data.aiSuggestions, // ✅ 추가
+      aiSuggestions: data.aiSuggestions,
+      businessPlan: data.businessPlan, // ✅ 추가
+      businessPlanGeneratedAt: data.businessPlanGeneratedAt ? data.businessPlanGeneratedAt.toDate() : undefined, // ✅ 추가
       favorited: data.favorited,
       createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
       userId: data.userId,
