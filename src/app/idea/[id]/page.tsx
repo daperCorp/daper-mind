@@ -697,7 +697,7 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
                 </ul>
 
                 <Button 
-                  onClick={() => router.push('/pricing')}
+                  onClick={() => router.push('/upgrade')}
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                   size="lg"
                 >
@@ -817,7 +817,7 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
 
       <div className="relative z-20 text-center pt-4">
         <Button 
-          onClick={() => router.push('/pricing')}
+          onClick={() => router.push('/upgrade')}
           className="bg-gradient-to-r from-purple-600 to-blue-600"
         >
           <Crown className="mr-2 h-4 w-4" />
