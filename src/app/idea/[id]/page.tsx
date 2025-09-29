@@ -4,11 +4,15 @@ import { useEffect, useState, use } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  // 서버 액션 (AI 생성)
+  // 서버 액션 (AI 생성만)
   generateAISuggestions,
-  saveAISuggestions,
   type GeneratedIdea
 } from '@/app/actions';
+
+import {
+  // 클라이언트 함수 (Firestore 저장)
+  saveAISuggestions,
+} from '@/lib/firebase-client';
 
 import {
   // 클라이언트 함수 (Firestore CRUD)
@@ -222,7 +226,6 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
     setIsAnalyzing(true);
     try {
       const result = await generateAISuggestions({
-        ideaId: idea.id!,
         title: idea.title,
         summary: idea.summary,
         outline: idea.outline,
@@ -706,7 +709,6 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
           </CardContent>
         </Card>
       )}
-// 계속...
 
 {/* 사업계획서 섹션 */}
 {userRole === 'paid' && (

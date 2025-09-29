@@ -6,16 +6,15 @@ import { notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   generateBusinessPlan,
-  saveBusinessPlan,
+  
 } from '@/app/actions';
 import { 
     getIdeaById, 
-    getUserData 
+    getUserData,
+    saveBusinessPlan,
+    exportBusinessPlan
   } from '@/lib/firebase-client'; // 클라이언트 함수
   
-  import { 
-    exportBusinessPlan 
-  } from '@/app/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -99,7 +98,6 @@ export default function BusinessPlanPage({
 
     try {
       const result = await generateBusinessPlan({
-        ideaId: idea.id!,
         title: idea.title,
         summary: idea.summary,
         outline: idea.outline,
