@@ -669,3 +669,48 @@ import {
       return { data: null, error: 'Failed to access shared idea' };
     }
   }
+
+  // lib/firebase-client.ts에 추가
+export async function getUserUsage(userId: string): Promise<{
+  role: 'free' | 'paid';
+  dailyLeft: number | null;
+  ideasLeft: number | null;
+  error?: string | null;
+}> {
+  try {
+    const { data, error } = await getUserData(userId); // 클라이언트 함수 사용
+    
+    if (error || !data) {
+      return { role: 'free', dailyLeft: 0, ideasLeft: 0, error: error ?? 'User not found' };
+    }
+
+    const role = data.role ?? 'free';
+
+    if (role === 'paid') {
+      return { role, dailyLeft: null, ideasLeft: null, error: null };
+    }
+
+    // 무료 사용자 계산
+    const now = new Date();
+    const last = data.lastApiRequestDate;
+    let usedToday = data.apiRequestCount ?? 0;
+
+    if (last) {
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      if (now.getTime() - last.getTime() > oneDayMs) {
+        usedToday = 0;
+      }
+    } else {
+      usedToday = 0;
+    }
+
+    const dailyLeft = Math.max(0, 2 - usedToday); // FREE_USER_API_LIMIT
+    const totalIdeasUsed = data.ideaCount ?? 0;
+    const ideasLeft = Math.max(0, 5 - totalIdeasUsed); // FREE_USER_IDEA_LIMIT
+
+    return { role, dailyLeft, ideasLeft, error: null };
+  } catch (e) {
+    console.error('getUserUsage error:', e);
+    return { role: 'free', dailyLeft: 0, ideasLeft: 0, error: 'Failed to fetch usage' };
+  }
+}

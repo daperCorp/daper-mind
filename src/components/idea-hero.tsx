@@ -5,7 +5,8 @@ import { useFormStatus } from 'react-dom';
 import { LoaderCircle, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-import { generateIdea, type GeneratedIdea, getUserUsage } from '@/app/actions';
+import { generateIdea, type GeneratedIdea } from '@/app/actions';
+import { getUserUsage } from '@/lib/firebase-client'; // ✅ 클라이언트에서 import
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { OutlineDisplay } from '@/components/outline-display';
