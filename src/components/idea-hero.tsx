@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { generateIdea, type GeneratedIdea } from '@/app/actions';
 import {  saveGeneratedIdea, 
   incrementUserApiUsage,
-   getUserUsage } from '@/lib/firebase-client'; // ✅ 클라이언트에서 import
+   getUserUsage } from '@/lib/firebase-client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { OutlineDisplay } from '@/components/outline-display';
@@ -49,11 +49,14 @@ export default function IdeaHero() {
   const [open, setOpen] = useState(false);
   const [idea, setIdea] = useState('');
   const [pending, setPending] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
+  const formRef = useRef<HTMLFormForm>(null);
   
-  // 🔹 초기값으로 requestId 생성
+  // 🔹 중복 저장 방지용 refs
   const requestIdRef = useRef<string>(generateRequestId());
-  const requestIdInputRef = useRef<HTMLInputElement>(null); // ✅ 추가
+  const requestIdInputRef = useRef<HTMLInputElement>(null);
+  const lastProcessedRequestRef = useRef<string | null>(null);
+  const lastShownIdRef = useRef<string | null>(null);
+  const isSavingRef = useRef(false);
 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -69,38 +72,38 @@ export default function IdeaHero() {
 
   // 로그인 상태 변화 시 사용량 불러오기
   const uid = user?.uid ?? null;
-const loadingUsageRef = useRef(false);
+  const loadingUsageRef = useRef(false);
 
-useEffect(() => {
-  if (!uid) {
-    setRole(null);
-    setDailyLeft(null);
-    setIdeasLeft(null);
-    return;
-  }
-  if (loadingUsageRef.current) return; // ✅ 중복 호출 가드
+  useEffect(() => {
+    if (!uid) {
+      setRole(null);
+      setDailyLeft(null);
+      setIdeasLeft(null);
+      return;
+    }
+    if (loadingUsageRef.current) return;
 
-  loadingUsageRef.current = true;
-  let alive = true;
+    loadingUsageRef.current = true;
+    let alive = true;
 
-  (async () => {
-    setUsageLoading(true);
-    const res = await getUserUsage(uid);
-    if (!alive) return;               // 언마운트/uid 변경 레이스 방지
-    if (res.error) console.error(res.error);
-    setRole(res.role);
-    setDailyLeft(res.dailyLeft);
-    setIdeasLeft(res.ideasLeft);
-    setUsageLoading(false);
-    loadingUsageRef.current = false;
-  })();
+    (async () => {
+      setUsageLoading(true);
+      const res = await getUserUsage(uid);
+      if (!alive) return;
+      if (res.error) console.error(res.error);
+      setRole(res.role);
+      setDailyLeft(res.dailyLeft);
+      setIdeasLeft(res.ideasLeft);
+      setUsageLoading(false);
+      loadingUsageRef.current = false;
+    })();
 
-  return () => { alive = false; };
-}, [uid]); // ✅ uid만 의존
+    return () => { alive = false; };
+  }, [uid]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     if (!user) {
-      e.preventDefault(); // block the action
+      e.preventDefault();
       router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
@@ -113,23 +116,17 @@ useEffect(() => {
   
     setPending(true);
     
-    console.log('Form submitted with requestId:', requestIdRef.current); // 디버깅 로그
+    console.log('Form submitted with requestId:', requestIdRef.current);
   };
 
-  // 생성 결과 처리 + 로컬 사용량 감소(무료일 때)
-  // 컴포넌트 상단
-const lastShownIdRef = useRef<string | null>(null);
-
-// 결과 처리 effect 수정
-// useEffect 완전 교체
-useEffect(() => {
-  const handleResult = async () => {
-    // pending 해제
+  // 🔹 결과 처리 useEffect - 중복 저장 방지 강화
+  useEffect(() => {
+    // 1. pending 해제
     if (pending && (state.error || state.data)) {
       setPending(false);
     }
 
-    // 에러 처리
+    // 2. 에러 처리
     if (state.error) {
       console.error('Generation error:', state.error);
       toast({ 
@@ -142,10 +139,30 @@ useEffect(() => {
       return;
     }
 
-    // ✅ AI 생성 성공 && 아직 저장 안 됨 && 로그인됨
-    if (state.data && !state.data.id && user?.uid) {
+    // 3. 저장 로직 - 중복 방지 강화
+    const processResult = async () => {
+      // ✅ 필수 조건 체크
+      if (!state.data || state.data.id || !user?.uid) return;
+      
+      // ✅ 이미 처리 중이면 스킵
+      if (isSavingRef.current) {
+        console.log('⏭️ 이미 저장 중, 스킵');
+        return;
+      }
+      
+      // ✅ 같은 requestId 중복 처리 방지
+      const currentRequestId = requestIdRef.current;
+      if (lastProcessedRequestRef.current === currentRequestId) {
+        console.log('⏭️ 이미 처리된 요청, 스킵:', currentRequestId);
+        return;
+      }
+
       try {
-        console.log('💾 Firestore에 저장 시작...');
+        // 저장 시작
+        isSavingRef.current = true;
+        lastProcessedRequestRef.current = currentRequestId;
+        
+        console.log('💾 Firestore에 저장 시작...', currentRequestId);
 
         // 1. 사용량 증가 (무료 사용자만)
         if (role === 'free') {
@@ -161,7 +178,7 @@ useEffect(() => {
             outline: state.data.outline,
             language: state.data.language || 'English',
           },
-          requestIdRef.current
+          currentRequestId
         );
 
         if (saveError || !savedId) {
@@ -170,12 +187,10 @@ useEffect(() => {
 
         console.log('✅ 저장 완료:', savedId);
 
-        // 3. 저장된 ID 포함하여 결과 표시
-        const ideaWithId = { ...state.data, id: savedId };
-        
+        // 3. UI 업데이트 (한 번만)
         if (lastShownIdRef.current !== savedId) {
           lastShownIdRef.current = savedId;
-          setResult(ideaWithId);
+          setResult({ ...state.data, id: savedId });
           setIdea('');
           formRef.current?.reset();
           setOpen(true);
@@ -186,33 +201,30 @@ useEffect(() => {
             setDailyLeft(prev => (typeof prev === 'number' ? Math.max(0, prev - 1) : prev));
             setIdeasLeft(prev => (typeof prev === 'number' ? Math.max(0, prev - 1) : prev));
           }
-
-          toast({
-            title: t('success'),
-            description: t('ideaGenerated'),
-          });
         }
       } catch (error: any) {
         console.error('❌ 저장 실패:', error);
+        
+        // 실패 시 다시 시도할 수 있도록 초기화
+        lastProcessedRequestRef.current = null;
+        
         toast({
           variant: 'destructive',
           title: t('error'),
           description: 'Failed to save generated idea. Please try again.',
         });
-        lastShownIdRef.current = null;
+      } finally {
+        isSavingRef.current = false;
       }
-    }
-  };
+    };
 
-  handleResult();
-}, [state, pending, role, user, toast, t]);
-
+    processResult();
+  }, [state.data, state.error, pending]);
 
   // 다이얼로그 닫기 핸들러
   const handleDialogClose = (isOpen: boolean) => {
     setOpen(isOpen);
     if (!isOpen) {
-      // 다이얼로그가 닫힐 때 상태 초기화
       setResult(null);
     }
   };
@@ -220,7 +232,6 @@ useEffect(() => {
   // 인디케이터 UI
   const QuotaBadge = ({ label, value, max }: { label: string; value: number | null; max?: number }) => {
     if (value === null) {
-      // 무제한 - 프리미엄 스타일
       return (
         <div className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 border border-emerald-200/60 px-3 py-1.5 text-sm font-medium shadow-sm backdrop-blur-sm">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -233,7 +244,6 @@ useEffect(() => {
     const text = max !== undefined ? `${left}/${max}` : `${left}`;
     const percentage = max ? (left / max) * 100 : 100;
     
-    // 색상과 스타일 단계
     const getStyles = () => {
       if (left === 0) {
         return {
@@ -303,7 +313,6 @@ useEffect(() => {
                 <QuotaBadge label={t('dailyLeft')} value={dailyLeft} max={2} />
                 <QuotaBadge label={t('ideasLeft')} value={ideasLeft} max={5} />
                 
-                {/* 플랜 뱃지 */}
                 <div className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium shadow-sm backdrop-blur-sm transition-all duration-200 ${
                   role === 'paid' 
                     ? 'bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border border-purple-200/60 hover:shadow-md' 
@@ -323,7 +332,6 @@ useEffect(() => {
             )}
           </div>
           
-          {/* 업그레이드 힌트 (무료 사용자에게만 표시) */}
           {role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)) && (
             <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
               <span>{t('needMore')}</span>
@@ -365,10 +373,8 @@ useEffect(() => {
                 
                 <input type="hidden" name="userId" value={user?.uid ?? ''} />
                 <input type="hidden" name="language" value={language} />
-<input type="hidden" name="requestId" ref={requestIdInputRef} defaultValue={requestIdRef.current} />
-
+                <input type="hidden" name="requestId" ref={requestIdInputRef} defaultValue={requestIdRef.current} />
                 
-                {/* 제출 버튼 */}
                 <Button
                   type="submit"
                   disabled={pending || !idea.trim() || (role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)))}
@@ -394,7 +400,6 @@ useEffect(() => {
               </div>
             </form>
             
-            {/* 한도 초과 시 메시지 */}
             {role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)) && (
               <div className="mt-3 p-4 rounded-lg bg-red-50 border border-red-200">
                 <div className="flex items-start gap-3">
@@ -425,7 +430,6 @@ useEffect(() => {
               </div>
             )}
             
-            {/* 도움말 텍스트 */}
             <div className="mt-4 text-center">
               <p className="text-sm text-muted-foreground">
                 {user ? (
@@ -448,200 +452,188 @@ useEffect(() => {
   
       {/* 로딩 오버레이 */}
       {pending && (
-  <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md">
-    {/* 배경 패턴 */}
-    <div className="absolute inset-0 z-0 opacity-5 bg-gradient-to-br from-blue-50 to-purple-50"></div>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md">
+          <div className="absolute inset-0 z-0 opacity-5 bg-gradient-to-br from-blue-50 to-purple-50"></div>
 
-    {/* 메인 로딩 애니메이션 */}
-    <div className="relative z-10 w-24 h-24 mb-6">
-      <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 opacity-20 animate-pulse"></div>
-      <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-30 animate-spin"></div>
-      <div className="absolute inset-4 rounded-full bg-white flex items-center justify-center">
-        <Sparkles className="h-8 w-8 text-blue-600 animate-pulse" />
-      </div>
-    </div>
-
-    {/* 텍스트와 프로그레스 */}
-    <div className="relative z-10 text-center space-y-4">
-      <div>
-        <h3 className="text-xl font-bold text-gray-800 mb-2">
-          {t('generatingYourIdea')}
-        </h3>
-        <p className="text-sm text-gray-600 max-w-md">
-          {t('aiCraftingDetails')}
-        </p>
-      </div>
-
-      <div className="flex items-center justify-center space-x-4 text-xs">
-        <div className="flex items-center gap-2 text-blue-600">
-          <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
-          <span>{t('analyzing')}</span>
-        </div>
-        <div className="w-8 h-px bg-gray-300"></div>
-        <div className="flex items-center gap-2 text-gray-400">
-          <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-          <span>{t('structuring')}</span>
-        </div>
-        <div className="w-8 h-px bg-gray-300"></div>
-        <div className="flex items-center gap-2 text-gray-400">
-          <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-          <span>{t('finalizing')}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-
-
-      {/* 결과 다이얼로그 - 모바일 최적화 버전 */}
-<Dialog open={open} onOpenChange={handleDialogClose}>
-  <DialogContent className="sm:max-w-4xl lg:max-w-5xl w-[95vw] h-[95vh] sm:h-[90vh] p-0 gap-0 flex flex-col">
-    <DialogHeader className="flex-shrink-0 space-y-3 p-4 sm:p-6 pb-4 border-b">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <DialogTitle className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight line-clamp-2">
-            {result?.title ?? t('generatedIdea')}
-          </DialogTitle>
-          {result?.summary && (
-            <DialogDescription className="text-sm sm:text-base md:text-lg text-muted-foreground mt-2 line-clamp-3">
-              {result.summary}
-            </DialogDescription>
-          )}
-        </div>
-        
-        {/* 성공 표시 */}
-        <div className="flex items-center gap-2 rounded-full bg-green-50 text-green-700 border border-green-200 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium">
-          <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
-          <span className="hidden sm:inline">{t('generated')}</span>
-        </div>
-      </div>
-      {/* 커스텀 닫기 버튼 - 우상단에 고정 */}
-      <DialogClose asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white shadow-md border border-gray-200/60 z-50 transition-all duration-200 hover:shadow-lg"
-          onClick={() => handleDialogClose(false)}
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-          <span className="sr-only">{t('close')}</span>
-        </Button>
-      </DialogClose>
-    </DialogHeader>
-
-    <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 overscroll-contain">
-      <div className="space-y-4 sm:space-y-6 pb-4">
-        {result?.outline && (
-          <div className="rounded-lg border bg-gradient-to-br from-slate-50 to-gray-50 p-4 sm:p-6">
-            <div className="flex items-center gap-2 mb-3 sm:mb-4">
-              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-              <h3 className="text-base sm:text-lg font-semibold">{t('ideaOutline')}</h3>
-            </div>
-            <div className="prose prose-sm max-w-none">
-              <OutlineDisplay outline={result.outline} />
+          <div className="relative z-10 w-24 h-24 mb-6">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 opacity-20 animate-pulse"></div>
+            <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-30 animate-spin"></div>
+            <div className="absolute inset-4 rounded-full bg-white flex items-center justify-center">
+              <Sparkles className="h-8 w-8 text-blue-600 animate-pulse" />
             </div>
           </div>
-        )}
-        
-        {/* 추가 정보 섹션 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="rounded-lg border bg-white p-3 sm:p-4">
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-2">
-              <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-              <span>{t('language')}</span>
-            </div>
-            <p className="font-medium text-sm sm:text-base">{result?.language || 'English'}</p>
-          </div>
-          
-          <div className="rounded-lg border bg-white p-3 sm:p-4">
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-2">
-              <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-              <span>{t('createdOn')}</span>
-            </div>
-            <p className="font-medium text-sm sm:text-base">{t('justNow')}</p>
-          </div>
-          
-          <div className="rounded-lg border bg-white p-3 sm:p-4">
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-2">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              <span>{t('status')}</span>
-            </div>
-            <p className="font-medium text-green-600 text-sm sm:text-base">{t('savedToArchive')}</p>
-          </div>
-        </div>
 
-        {/* 다음 단계 안내 */}
-        <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4 sm:p-6">
-          <h4 className="text-base sm:text-lg font-semibold text-blue-900 mb-2 sm:mb-3">{t('whatsNext')}</h4>
-          <div className="space-y-2 text-xs sm:text-sm text-blue-700">
-            <p className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
-              <span>{t('exploreFullDetails')}</span>
-            </p>
-            <p className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
-              <span>{t('addToFavorites')}</span>
-            </p>
-            <p className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
-              <span>{t('generateMoreIdeas')}</span>
-            </p>
+          <div className="relative z-10 text-center space-y-4">
+            <div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
+                {t('generatingYourIdea')}
+              </h3>
+              <p className="text-sm text-gray-600 max-w-md">
+                {t('aiCraftingDetails')}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center space-x-4 text-xs">
+              <div className="flex items-center gap-2 text-blue-600">
+                <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
+                <span>{t('analyzing')}</span>
+              </div>
+              <div className="w-8 h-px bg-gray-300"></div>
+              <div className="flex items-center gap-2 text-gray-400">
+                <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                <span>{t('structuring')}</span>
+              </div>
+              <div className="w-8 h-px bg-gray-300"></div>
+              <div className="flex items-center gap-2 text-gray-400">
+                <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                <span>{t('finalizing')}</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      )}
 
-    <DialogFooter className="flex-shrink-0 border-t p-4 sm:p-6 pt-3 sm:pt-4 gap-2 sm:gap-3 bg-white">
-      <div className="flex flex-col gap-3 w-full">
-        {/* 주요 액션 버튼들 */}
-        <div className="flex gap-2 w-full">
-          <Button
-            onClick={() => {
-              handleDialogClose(false);
-              router.push(`/idea/${result?.id}`);
-            }}
-            className="flex-1 h-11 text-sm sm:text-base"
-            disabled={!result?.id}
-          >
-            {t('viewDetails')}
-          </Button>
-          
-          <Button
-            variant="outline"
-            onClick={() => {
-              handleDialogClose(false);
-              router.push('/archive');
-            }}
-            className="flex-1 h-11 text-sm sm:text-base"
-          >
-            {t('goToArchive')}
-          </Button>
-        </div>
-        
-        {/* 보조 액션 버튼들 */}
-        <div className="flex gap-2 w-full">
-          <Button
-            variant="ghost"
-            onClick={() => {
-              handleDialogClose(false);
-              // 폼 포커스하여 새 아이디어 생성 유도
-              setTimeout(() => {
-                const input = document.getElementById('idea') as HTMLInputElement;
-                input?.focus();
-              }, 100);
-            }}
-            className="flex-1 h-10 text-sm"
-          >
-            {t('generateAnother')}
-          </Button>
-          
-        </div>
-      </div>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
+      {/* 결과 다이얼로그 */}
+      <Dialog open={open} onOpenChange={handleDialogClose}>
+        <DialogContent className="sm:max-w-4xl lg:max-w-5xl w-[95vw] h-[95vh] sm:h-[90vh] p-0 gap-0 flex flex-col">
+          <DialogHeader className="flex-shrink-0 space-y-3 p-4 sm:p-6 pb-4 border-b">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight line-clamp-2">
+                  {result?.title ?? t('generatedIdea')}
+                </DialogTitle>
+                {result?.summary && (
+                  <DialogDescription className="text-sm sm:text-base md:text-lg text-muted-foreground mt-2 line-clamp-3">
+                    {result.summary}
+                  </DialogDescription>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2 rounded-full bg-green-50 text-green-700 border border-green-200 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium">
+                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">{t('generated')}</span>
+              </div>
+            </div>
+            <DialogClose asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white shadow-md border border-gray-200/60 z-50 transition-all duration-200 hover:shadow-lg"
+                onClick={() => handleDialogClose(false)}
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span className="sr-only">{t('close')}</span>
+              </Button>
+            </DialogClose>
+          </DialogHeader>
+
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 overscroll-contain">
+            <div className="space-y-4 sm:space-y-6 pb-4">
+              {result?.outline && (
+                <div className="rounded-lg border bg-gradient-to-br from-slate-50 to-gray-50 p-4 sm:p-6">
+                  <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <h3 className="text-base sm:text-lg font-semibold">{t('ideaOutline')}</h3>
+                  </div>
+                  <div className="prose prose-sm max-w-none">
+                    <OutlineDisplay outline={result.outline} />
+                  </div>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className="rounded-lg border bg-white p-3 sm:p-4">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-2">
+                    <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                    <span>{t('language')}</span>
+                  </div>
+                  <p className="font-medium text-sm sm:text-base">{result?.language || 'English'}</p>
+                </div>
+                
+                <div className="rounded-lg border bg-white p-3 sm:p-4">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-2">
+                    <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                    <span>{t('createdOn')}</span>
+                  </div>
+                  <p className="font-medium text-sm sm:text-base">{t('justNow')}</p>
+                </div>
+                
+                <div className="rounded-lg border bg-white p-3 sm:p-4">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span>{t('status')}</span>
+                  </div>
+                  <p className="font-medium text-green-600 text-sm sm:text-base">{t('savedToArchive')}</p>
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4 sm:p-6">
+                <h4 className="text-base sm:text-lg font-semibold text-blue-900 mb-2 sm:mb-3">{t('whatsNext')}</h4>
+                <div className="space-y-2 text-xs sm:text-sm text-blue-700">
+                  <p className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+                    <span>{t('exploreFullDetails')}</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+                    <span>{t('addToFavorites')}</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+                    <span>{t('generateMoreIdeas')}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex-shrink-0 border-t p-4 sm:p-6 pt-3 sm:pt-4 gap-2 sm:gap-3 bg-white">
+            <div className="flex flex-col gap-3 w-full">
+              <div className="flex gap-2 w-full">
+                <Button
+                  onClick={() => {
+                    handleDialogClose(false);
+                    router.push(`/idea/${result?.id}`);
+                  }}
+                  className="flex-1 h-11 text-sm sm:text-base"
+                  disabled={!result?.id}
+                >
+                  {t('viewDetails')}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    handleDialogClose(false);
+                    router.push('/archive');
+                  }}
+                  className="flex-1 h-11 text-sm sm:text-base"
+                >
+                  {t('goToArchive')}
+                </Button>
+              </div>
+              
+              <div className="flex gap-2 w-full">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    handleDialogClose(false);
+                    setTimeout(() => {
+                      const input = document.getElementById('idea') as HTMLInputElement;
+                      input?.focus();
+                    }, 100);
+                  }}
+                  className="flex-1 h-10 text-sm"
+                >
+                  {t('generateAnother')}
+                </Button>
+              </div>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
