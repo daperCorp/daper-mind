@@ -10,8 +10,8 @@ import { translations, useT } from '@/lib/translations';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-import { getUserUsage } from '@/app/actions'; // 👈 서버액션: role/남은횟수 가져오기
-
+// import { getUserUsage } from '@/app/actions'; // 👈 서버액션: role/남은횟수 가져오기
+import { getUserUsage } from '@/lib/firebase-client';
 type Role = 'free' | 'paid';
 
 export function PlanSettings() {

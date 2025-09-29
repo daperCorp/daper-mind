@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { User } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { getUserUsage } from '@/app/actions';
+import { getUserUsage } from '@/lib/firebase-client';
 import { FREE_USER_API_LIMIT, FREE_USER_IDEA_LIMIT } from '@/lib/constants';
 export function AccountSettings() {
   const { user } = useAuth();
