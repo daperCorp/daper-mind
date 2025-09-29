@@ -222,30 +222,7 @@ function IdeaCard({
   const { toast } = useToast();
   const t = useT();
 
-  const handleRegenerate = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    startTransition(async () => {
-      const { success, newMindMap, error } = await regenerateMindMap(
-        idea.id!, 
-        idea.summary, 
-        idea.language || 'English'
-      );
-      if (success && newMindMap) {
-        onRegenerate(idea.id!, newMindMap);
-        toast({
-          title: t('success'),
-          description: t('mindMapRegenerated'),
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: t('error'),
-          description: error,
-        });
-      }
-    });
-  };
+  
 
   return (
     <Card className="group relative h-full transition-all duration-200 border bg-card hover:shadow-lg hover:-translate-y-0.5">

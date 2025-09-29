@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getUserUsage } from '@/app/actions';
+import { getUserUsage } from '@/lib/firebase-client';
 
 export default function UpgradePage() {
   const { user, loading } = useAuth();

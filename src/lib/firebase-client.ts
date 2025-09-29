@@ -779,3 +779,174 @@ export async function incrementUserApiUsage(userId: string): Promise<void> {
     });
   });
 }
+
+// lib/firebase-client.ts
+export async function updateMindMap(ideaId: string, mindMap: MindMapNode) {
+  try {
+    const ref = doc(db, 'ideas', ideaId);
+    await updateDoc(ref, { mindMap });
+  } catch (err) {
+    console.error('Error updating mind map:', err);
+    throw err;
+  }
+}
+
+// lib/firebase-client.ts
+export async function addNodesToMindMap(
+  ideaId: string,
+  parentNodeTitle: string,
+  newNodes: { title: string }[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const ideaRef = doc(db, 'ideas', ideaId);
+    const ideaSnap = await getDoc(ideaRef);
+    
+    if (!ideaSnap.exists()) {
+      throw new Error('Idea not found');
+    }
+
+    const ideaData = ideaSnap.data();
+    const mindMap = ideaData.mindMap as MindMapNode;
+
+    // 재귀적으로 부모 노드 찾아서 자식 추가
+    const findAndAdd = (node: any): boolean => {
+      if (node.title === parentNodeTitle) {
+        if (!node.children) node.children = [];
+        node.children.push(...newNodes);
+        return true;
+      }
+      if (node.children) {
+        for (const child of node.children) {
+          if (findAndAdd(child)) return true;
+        }
+      }
+      return false;
+    };
+
+    if (!findAndAdd(mindMap)) {
+      throw new Error('Parent node not found in mind map');
+    }
+
+    await updateDoc(ideaRef, { mindMap });
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error adding nodes to mind map:', err);
+    return { success: false, error: err.message || 'Failed to add nodes' };
+  }
+}
+
+// lib/firebase-client.ts
+export async function saveAISuggestions(
+  ideaId: string,
+  suggestions: GenerateAISuggestionsOutput
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!ideaId) {
+      return { success: false, error: 'Idea ID is required' };
+    }
+
+    const ideaRef = doc(db, 'ideas', ideaId);
+    
+    // 클라이언트에서는 권한 체크 없이 바로 저장
+    // (Firestore 보안 규칙이 자동으로 권한 체크)
+    await updateDoc(ideaRef, {
+      aiSuggestions: suggestions,
+      updatedAt: serverTimestamp(),
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error saving AI suggestions:', error);
+    return { success: false, error: error.message || 'Failed to save AI suggestions' };
+  }
+}
+
+// lib/firebase-client.ts
+export async function saveBusinessPlan(
+  ideaId: string,
+  businessPlan: GenerateBusinessPlanOutput
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!ideaId) {
+      return { success: false, error: 'Idea ID is required' };
+    }
+
+    const ideaRef = doc(db, 'ideas', ideaId);
+    
+    await updateDoc(ideaRef, {
+      businessPlan: businessPlan,
+      businessPlanGeneratedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error saving business plan:', error);
+    return { success: false, error: error.message || 'Failed to save business plan' };
+  }
+}
+
+// lib/firebase-client.ts
+export async function exportBusinessPlan(
+  ideaId: string,
+  format: 'markdown' | 'text' = 'markdown'
+): Promise<{ content: string | null; error: string | null }> {
+  try {
+    const ideaRef = doc(db, 'ideas', ideaId);
+    const ideaSnap = await getDoc(ideaRef);
+
+    if (!ideaSnap.exists()) {
+      return { content: null, error: 'Idea not found' };
+    }
+
+    const ideaData = ideaSnap.data();
+    const businessPlan = ideaData.businessPlan as GenerateBusinessPlanOutput | undefined;
+
+    if (!businessPlan) {
+      return { content: null, error: 'Business plan not found' };
+    }
+
+    let content = '';
+
+    if (format === 'markdown') {
+      content = `# ${ideaData.title} - 사업계획서\n\n`;
+      content += `생성일: ${new Date().toLocaleDateString()}\n\n`;
+      content += `---\n\n`;
+
+      businessPlan.sections.forEach(section => {
+        content += `## ${section.title}\n\n`;
+        content += `${section.content}\n\n`;
+        content += `---\n\n`;
+      });
+
+      content += `## 메타데이터\n\n`;
+      content += `- **타겟 시장**: ${businessPlan.metadata.targetMarket}\n`;
+      content += `- **비즈니스 모델**: ${businessPlan.metadata.businessModel}\n`;
+      content += `- **필요 자금**: ${businessPlan.metadata.fundingNeeded}\n`;
+      content += `- **시장 출시**: ${businessPlan.metadata.timeToMarket}\n`;
+    } else {
+      content = `${ideaData.title} - 사업계획서\n`;
+      content += `생성일: ${new Date().toLocaleDateString()}\n\n`;
+      content += `${'='.repeat(60)}\n\n`;
+
+      businessPlan.sections.forEach(section => {
+        content += `${section.title}\n`;
+        content += `${'-'.repeat(section.title.length)}\n\n`;
+        content += `${section.content}\n\n`;
+        content += `${'='.repeat(60)}\n\n`;
+      });
+
+      content += `메타데이터\n`;
+      content += `${'-'.repeat(10)}\n\n`;
+      content += `타겟 시장: ${businessPlan.metadata.targetMarket}\n`;
+      content += `비즈니스 모델: ${businessPlan.metadata.businessModel}\n`;
+      content += `필요 자금: ${businessPlan.metadata.fundingNeeded}\n`;
+      content += `시장 출시: ${businessPlan.metadata.timeToMarket}\n`;
+    }
+
+    return { content, error: null };
+  } catch (error: any) {
+    console.error('Error exporting business plan:', error);
+    return { content: null, error: 'Failed to export business plan' };
+  }
+}

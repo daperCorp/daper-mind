@@ -6,7 +6,9 @@ import {
   getIdeaById, 
   addManualMindMapNode, 
   editMindMapNode, 
-  deleteMindMapNode 
+  deleteMindMapNode,
+  updateMindMap,
+  addNodesToMindMap
 } from '@/lib/firebase-client'; // 클라이언트 함수
 import { 
   expandMindMapNode, 
@@ -70,13 +72,16 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
       if (!data.mindMap) {
         startTransition(async () => {
           try {
+            // ✅ ideaId 제거, summary와 language만 전달
             const { success, newMindMap, error: regenerateError } = await regenerateMindMap(
-              data.id!, 
               data.summary, 
               data.language || 'English'
             );
             
             if (success && newMindMap) {
+              // ✅ Firestore에 저장 (클라이언트)
+              await updateMindMap(data.id!, newMindMap);
+              
               setIdea(prev => prev ? { ...prev, mindMap: newMindMap } : null);
               toast({
                 title: "성공",
@@ -95,6 +100,7 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
           }
         });
       }
+
     } catch (error) {
       console.error("Fetch idea error:", error);
       toast({
@@ -126,25 +132,37 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
     
     const parentNodeTitle = nodePath.split('>').pop()!;
     const existingChildrenTitles = existingChildren.map(c => c.title);
-
+  
     startTransition(async () => {
       try {
+        // 1. AI로 새 노드 생성 (서버)
         const { success, newNodes, error } = await expandMindMapNode(
-          idea.id!,
           idea.summary,
           parentNodeTitle,
           existingChildrenTitles,
           idea.language || 'English'
         );
         
-        if (success) {
+        if (success && newNodes) {
+          // 2. Firestore에 저장 (클라이언트)
+          const { success: saveSuccess, error: saveError } = await addNodesToMindMap(
+            idea.id!,
+            parentNodeTitle,
+            newNodes
+          );
+  
+          if (!saveSuccess) {
+            throw new Error(saveError || 'Failed to save nodes');
+          }
+  
           toast({ 
             title: '성공', 
-            description: `${newNodes?.length || 0}개의 새 노드가 추가되었습니다.` 
+            description: `${newNodes.length}개의 새 노드가 추가되었습니다.` 
           });
+          
           await fetchIdea(false);
         } else {
-          throw new Error(error);
+          throw new Error(error || 'Failed to generate nodes');
         }
       } catch (error: any) {
         console.error("Expand node error:", error);
@@ -223,14 +241,11 @@ export default function MindMapPage({ params: paramsPromise }: { params: Promise
     
     startTransition(async () => {
       try {
-        const { success, newMindMap, error } = await regenerateMindMap(
-          idea.id!, 
-          idea.summary, 
-          idea.language || 'English'
-        );
+        const { success, newMindMap, error } = await regenerateMindMap(idea.summary, 'English'); // ✅ error 추가
         
         if (success && newMindMap) {
           setIdea(prev => prev ? { ...prev, mindMap: newMindMap } : null);
+          await updateMindMap(idea.id!, newMindMap); // ✅ idea.id!
           toast({
             title: "성공",
             description: "마인드맵이 재생성되었습니다.",
