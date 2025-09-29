@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import { notFound } from 'next/navigation';
-import { getIdeaByShareLink } from '@/app/actions';
+import { getIdeaByShareLink } from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';

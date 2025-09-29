@@ -5,12 +5,17 @@ import { useEffect, useState, use } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  getIdeaById,
   generateBusinessPlan,
   saveBusinessPlan,
-  exportBusinessPlan,
-  getUserData,
 } from '@/app/actions';
+import { 
+    getIdeaById, 
+    getUserData 
+  } from '@/lib/firebase-client'; // 클라이언트 함수
+  
+  import { 
+    exportBusinessPlan 
+  } from '@/app/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

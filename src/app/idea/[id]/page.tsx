@@ -4,15 +4,20 @@ import { useEffect, useState, use } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  getIdeaById, 
-  GeneratedIdea, 
-  toggleFavorite, 
-  updateIdeaContent,
+  // 서버 액션 (AI 생성)
   generateAISuggestions,
   saveAISuggestions,
-  getUserData,
-  createShareLink
+  type GeneratedIdea
 } from '@/app/actions';
+
+import {
+  // 클라이언트 함수 (Firestore CRUD)
+  getIdeaById,
+  getUserData,
+  toggleFavorite,
+  updateIdeaContent,
+  createShareLink
+} from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { OutlineDisplay } from '@/components/outline-display';
 import { Button } from '@/components/ui/button';
@@ -30,8 +35,6 @@ import {
   Download, 
   FileText,
   Wand2,
-  Lightbulb,
-  Target,
   AlertTriangle,
   CheckCircle2,
   TrendingUp,
@@ -62,7 +65,6 @@ import {
 } from '@/components/ui/dialog';
 import { useAuth } from '@/context/auth-context';
 
-
 export default function IdeaDetailPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = use(paramsPromise);
   const [idea, setIdea] = useState<GeneratedIdea | null>(null);
@@ -81,144 +83,120 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
   const { language } = useLanguage();
   const t = (key: keyof typeof translations) => translations[key][language];
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
     const id = params.id;
     if (!id) return;
 
-    async function fetchIdea() {
-      const { data, error } = await getIdeaById(id);
-      if (error || !data) {
-        notFound();
-      } else {
-        setIdea(data);
-        setIsFavorited(data.favorited || false);
-        setEditValues({ 
-          title: data.title || '', 
-          summary: data.summary || '' 
-        });
-        
-        // 사용자 role 가져오기
-        if (data.userId) {
-          const { data: userData } = await getUserData(data.userId);
-          if (userData) {
-            setUserRole(userData.role || 'free');
-            
-            // 저장된 AI 분석이 있으면 불러오기 (자동 실행 제거)
-            if (data.aiSuggestions) {
-              setAiAnalysis(data.aiSuggestions);
-            }
-          }
+    (async () => {
+      try {
+        const { data: ideaData, error: ideaError } = await getIdeaById(id);
+        if (ideaError || !ideaData) {
+          notFound();
+          return;
         }
-      }
-      setLoading(false);
-    }
-    fetchIdea();
-  }, [params]);
+        setIdea(ideaData);
+        setIsFavorited(Boolean(ideaData.favorited));
+        setEditValues({ title: ideaData.title || '', summary: ideaData.summary || '' });
 
-  // 자동 AI 분석 실행 제거 - useEffect 삭제
+        if (ideaData.userId) {
+          const { data: userData } = await getUserData(ideaData.userId);
+          if (userData?.role) setUserRole(userData.role);
+          if (ideaData.aiSuggestions) setAiAnalysis(ideaData.aiSuggestions);
+        }
+      } catch (e) {
+        console.error(e);
+        notFound();
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [params]);
 
   const handleShare = async () => {
     if (!idea?.id) return;
-    
     try {
-      // 공유 링크 생성 다이얼로그 표시
-      const createLink = window.confirm('이 아이디어의 공유 링크를 생성하시겠습니까?');
-      
-      if (!createLink) return;
-      
-      // 공유 링크 생성
-      const { data: shareLink, error } = await createShareLink(idea.id);
-      
+      if (!window.confirm('이 아이디어의 공유 링크를 생성하시겠습니까?')) return;
+
+      const { data: shareLink, error } = await createShareLink(idea.id, 7); // 7일 유효
       if (error || !shareLink) {
-        throw new Error(error || '공유 링크 생성에 실패했습니다');
+        throw new Error(error || '공유 링크 생성 실패');
       }
-      
-      // 공유 링크 URL 생성
+
       const shareUrl = `${window.location.origin}/share/${shareLink.id}`;
-      
-      // 클립보드에 복사
       await navigator.clipboard.writeText(shareUrl);
-      
-      toast({ 
-        title: '공유 링크 생성 완료', 
-        description: '링크가 클립보드에 복사되었습니다. 이 링크는 읽기 전용입니다.' 
+
+      toast({
+        title: '공유 링크 생성 완료',
+        description: '링크가 클립보드에 복사되었습니다. 이 링크는 읽기 전용입니다.',
       });
     } catch (err: any) {
       console.error('Share error:', err);
-      toast({ 
-        variant: 'destructive', 
-        title: '오류', 
-        description: err.message || '공유 링크 생성에 실패했습니다.' 
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: err.message || '공유 링크 생성에 실패했습니다.',
       });
     }
   };
 
   const handleToggleFavorite = async () => {
     if (!idea?.id) return;
-    
     try {
       await toggleFavorite(idea.id, !isFavorited);
-      setIsFavorited(!isFavorited);
+      setIsFavorited((v) => !v);
       toast({
         title: isFavorited ? t('removedFromFavorites') : t('addedToFavorites'),
-        description: isFavorited ? t('ideaRemovedFromFavorites') : t('ideaAddedToFavorites')
+        description: isFavorited ? t('ideaRemovedFromFavorites') : t('ideaAddedToFavorites'),
       });
-    } catch (error) {
+    } catch {
       toast({
         variant: 'destructive',
         title: t('error'),
-        description: t('failedToUpdateFavorite')
+        description: t('failedToUpdateFavorite'),
       });
     }
   };
 
   const handleEdit = (field: 'title' | 'summary') => {
-    setIsEditing(prev => ({ ...prev, [field]: true }));
+    setIsEditing((prev) => ({ ...prev, [field]: true }));
   };
 
   const handleSave = async (field: 'title' | 'summary') => {
     if (!idea?.id) return;
-
     try {
-      await updateIdeaContent(idea.id, {
-        [field]: editValues[field]
+      const { success, error } = await updateIdeaContent(idea.id, { 
+        [field]: editValues[field] 
       });
       
-      setIdea(prev => prev ? { ...prev, [field]: editValues[field] } : null);
-      setIsEditing(prev => ({ ...prev, [field]: false }));
+      if (!success) {
+        throw new Error(error || 'Update failed');
+      }
       
-      toast({
-        title: t('saved'),
-        description: t('ideaUpdated')
-      });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('error'),
-        description: t('failedToSaveChanges')
+      setIdea((prev) => (prev ? { ...prev, [field]: editValues[field] } as any : null));
+      setIsEditing((prev) => ({ ...prev, [field]: false }));
+      toast({ title: t('saved'), description: t('ideaUpdated') });
+    } catch (err: any) {
+      toast({ 
+        variant: 'destructive', 
+        title: t('error'), 
+        description: err.message || t('failedToSaveChanges') 
       });
     }
   };
 
   const handleCancel = (field: 'title' | 'summary') => {
-    setEditValues(prev => ({ 
-      ...prev, 
-      [field]: idea?.[field] || '' 
-    }));
-    setIsEditing(prev => ({ ...prev, [field]: false }));
+    setEditValues((prev) => ({ ...prev, [field]: (idea as any)?.[field] || '' }));
+    setIsEditing((prev) => ({ ...prev, [field]: false }));
   };
-
+  
   const handleExport = (format: 'txt' | 'md') => {
     if (!idea) return;
-
-    let content = '';
-    if (format === 'md') {
-      content = `# ${idea.title}\n\n## Summary\n${idea.summary}\n\n## Outline\n${idea.outline}`;
-    } else {
-      content = `${idea.title}\n\n${idea.summary}\n\n${idea.outline}`;
-    }
-
+    const content =
+      format === 'md'
+        ? `# ${idea.title}\n\n## Summary\n${idea.summary}\n\n## Outline\n${idea.outline}`
+        : `${idea.title}\n\n${idea.summary}\n\n${idea.outline}`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -226,59 +204,55 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
     a.download = `${idea.title}.${format}`;
     a.click();
     URL.revokeObjectURL(url);
-
-    toast({
-      title: t('exported'),
-      description: t('ideaExported')
-    });
+    toast({ title: t('exported'), description: t('ideaExported') });
   };
 
-  // AI 분석 생성 - 버튼 클릭 시에만 실행
   const handleGenerateAISuggestions = async () => {
-    if (!idea) return;
-    
+    if (!idea || !user?.uid) return;
+
     if (userRole !== 'paid') {
       toast({
         title: '유료 기능',
         description: '전문 AI 분석은 Pro 플랜에서 이용 가능합니다.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
-    
+
     setIsAnalyzing(true);
-    
     try {
       const result = await generateAISuggestions({
         ideaId: idea.id!,
         title: idea.title,
         summary: idea.summary,
         outline: idea.outline,
-        language: (idea.language || language === 'Korean' ? 'Korean' : 'English') as 'English' | 'Korean'
+        language: (idea.language || 'English') as 'English' | 'Korean',
       });
-      
+
       setAiAnalysis(result);
       
-      // DB에 저장
-      await saveAISuggestions(idea.id!, result);
+      const { success, error } = await saveAISuggestions(idea.id!, result);
       
-      toast({
-        title: 'AI 분석 완료',
-        description: 'AI가 아이디어를 성공적으로 분석했습니다.'
+      if (!success) {
+        throw new Error(error || 'Failed to save');
+      }
+
+      toast({ 
+        title: 'AI 분석 완료', 
+        description: 'AI가 아이디어를 성공적으로 분석했습니다.' 
       });
     } catch (error: any) {
       console.error('AI 분석 생성 실패:', error);
       toast({
         variant: 'destructive',
         title: t('error'),
-        description: error.message || 'AI 분석을 생성하는 중 오류가 발생했습니다.'
+        description: error.message || 'AI 분석을 생성하는 중 오류가 발생했습니다.',
       });
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  // 마인드맵 미리보기 컴포넌트
   const MindMapPreview = ({ mindMap }: { mindMap: any }) => {
     if (!mindMap) return <p className="text-muted-foreground">No mind map available</p>;
 
@@ -504,10 +478,9 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
         </CardContent>
       </Card>
 
-      {/* AI 개선 제안 섹션 - 버튼으로만 실행 */}
+      {/* AI 개선 제안 섹션 */}
       {userRole === 'paid' ? (
         !aiAnalysis ? (
-          // AI 분석 시작 전 - 버튼만 표시
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -561,7 +534,6 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
             </CardContent>
           </Card>
         ) : (
-          // 전체 분석 결과 (변경 없음)
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -654,7 +626,6 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
           </div>
         )
       ) : (
-        // Free 사용자용 미리보기 (변경 없음)
         <Card className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-white z-10 pointer-events-none" />
           <CardHeader>
@@ -723,7 +694,7 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
                 </ul>
 
                 <Button 
-                  onClick={() => router.push('/upgrade')}
+                  onClick={() => router.push('/pricing')}
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                   size="lg"
                 >
@@ -735,6 +706,7 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
           </CardContent>
         </Card>
       )}
+// 계속...
 
 {/* 사업계획서 섹션 */}
 {userRole === 'paid' && (
@@ -752,7 +724,6 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
       </p>
 
       {idea.businessPlan ? (
-        // 이미 생성된 사업계획서가 있을 때
         <div className="space-y-4">
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
@@ -787,7 +758,6 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
           </Button>
         </div>
       ) : (
-        // 아직 생성되지 않았을 때
         <div className="space-y-4">
           <div className="grid gap-3 text-sm">
             <div className="flex items-center gap-2">
@@ -856,17 +826,17 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
   </Card>
 )}
 
-      {/* 마인드맵 미리보기 다이얼로그 */}
-      <Dialog open={showMindMapPreview} onOpenChange={setShowMindMapPreview}>
-        <DialogContent className="max-w-3xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Mind Map Preview</DialogTitle>
-          </DialogHeader>
-          <div className="overflow-y-auto max-h-96">
-            <MindMapPreview mindMap={idea.mindMap} />
-          </div>
-        </DialogContent>
-      </Dialog>
+{/* 마인드맵 미리보기 다이얼로그 */}
+<Dialog open={showMindMapPreview} onOpenChange={setShowMindMapPreview}>
+  <DialogContent className="max-w-3xl max-h-[80vh]">
+    <DialogHeader>
+      <DialogTitle>Mind Map Preview</DialogTitle>
+    </DialogHeader>
+    <div className="overflow-y-auto max-h-96">
+      <MindMapPreview mindMap={idea.mindMap} />
     </div>
-  );
+  </DialogContent>
+</Dialog>
+</div>
+);
 }

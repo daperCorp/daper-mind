@@ -2,7 +2,17 @@
 
 import { useEffect, useState, useTransition, use, useRef } from 'react';
 import { notFound } from 'next/navigation';
-import { getIdeaById, GeneratedIdea, expandMindMapNode, regenerateMindMap, addManualMindMapNode, editMindMapNode, deleteMindMapNode } from '@/app/actions';
+import { 
+  getIdeaById, 
+  addManualMindMapNode, 
+  editMindMapNode, 
+  deleteMindMapNode 
+} from '@/lib/firebase-client'; // 클라이언트 함수
+import { 
+  expandMindMapNode, 
+  regenerateMindMap,
+  type GeneratedIdea 
+} from '@/app/actions'; 
 import { MindMapDisplay } from '@/components/mindmap-display';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
