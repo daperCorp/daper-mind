@@ -6,16 +6,16 @@ import { getIdeaByShareLink } from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Eye, AlertCircle, Share2, ChevronRight, ChevronDown } from 'lucide-react';
+import { Eye, AlertCircle, Share2, ChevronRight, ChevronDown, Sparkles, FileText, TrendingUp } from 'lucide-react';
+import { OutlineDisplay } from '@/components/outline-display';
 
 // 마인드맵 노드 컴포넌트
 function MindMapNode({ node, level = 0 }: { node: any; level?: number }) {
-  const [isExpanded, setIsExpanded] = useState(level < 2); // 2단계까지 기본 확장
+  const [isExpanded, setIsExpanded] = useState(level < 2);
 
   if (!node) return null;
 
   const hasChildren = node.children && Array.isArray(node.children) && node.children.length > 0;
-  const indentClass = level === 0 ? '' : `ml-${Math.min(level * 6, 12)}`;
   const bgColor = level === 0 ? 'bg-blue-100 border-blue-300' : level === 1 ? 'bg-purple-50 border-purple-200' : 'bg-gray-50 border-gray-200';
 
   return (
@@ -93,7 +93,6 @@ function MindMapRenderer({ data }: { data: any }) {
     return <div className="text-sm text-muted-foreground">마인드맵 로딩 중...</div>;
   }
 
-  // 루트 노드 찾기
   const rootNode = parsedData.root || parsedData;
 
   return (
@@ -174,6 +173,11 @@ export default function SharedIdeaPage({
     );
   }
 
+  // 프리미엄 콘텐츠 확인
+  const hasAiAnalysis = idea.aiAnalysis && idea.aiAnalysis.trim();
+  const hasBusinessPlan = idea.businessPlan && idea.businessPlan.trim();
+  const hasPremiumContent = hasAiAnalysis || hasBusinessPlan;
+
   return (
     <div className="mx-auto max-w-4xl space-y-8 p-4 md:p-6">
       {/* 읽기 전용 배너 */}
@@ -187,9 +191,17 @@ export default function SharedIdeaPage({
             이 아이디어는 읽기 전용으로 공유되었습니다.
           </p>
         </div>
-        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-          읽기 전용
-        </Badge>
+        <div className="flex gap-2">
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+            읽기 전용
+          </Badge>
+          {hasPremiumContent && (
+            <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+              <Sparkles className="h-3 w-3 mr-1" />
+              프리미엄
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* 제목 */}
@@ -221,13 +233,49 @@ export default function SharedIdeaPage({
           <CardTitle>상세 계획</CardTitle>
         </CardHeader>
         <CardContent>
-          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-muted-foreground">
-            {String(idea.outline || '상세 계획 없음')}
-          </pre>
+          <OutlineDisplay outline={String(idea.outline || '상세 계획 없음')} />
         </CardContent>
       </Card>
 
-      {/* 마인드맵 (있는 경우) */}
+      {/* AI 전문 분석 (프리미엄) */}
+      {hasAiAnalysis && (
+        <Card className="border-purple-200 bg-gradient-to-br from-purple-50/50 to-indigo-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-purple-600" />
+              <span>AI 전문 분석</span>
+              <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs">
+                <Sparkles className="h-3 w-3 mr-1" />
+                프리미엄
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <OutlineDisplay outline={idea.aiAnalysis} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 사업계획서 (프리미엄) */}
+      {hasBusinessPlan && (
+        <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-blue-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-indigo-600" />
+              <span>사업계획서</span>
+              <Badge className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-xs">
+                <Sparkles className="h-3 w-3 mr-1" />
+                프리미엄
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <OutlineDisplay outline={idea.businessPlan} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 마인드맵 */}
       {idea.mindMap && (
         <Card>
           <CardHeader>
@@ -254,6 +302,11 @@ export default function SharedIdeaPage({
               <p className="text-sm text-blue-800">
                 이 아이디어는 보기만 가능합니다. 원본 아이디어를 수정하려면 소유자 계정으로 로그인하세요.
               </p>
+              {hasPremiumContent && (
+                <p className="text-sm text-purple-700 mt-2 font-medium">
+                  ✨ 이 아이디어에는 프리미엄 콘텐츠가 포함되어 있습니다.
+                </p>
+              )}
             </div>
           </div>
         </CardContent>
