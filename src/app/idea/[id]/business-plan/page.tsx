@@ -404,44 +404,47 @@ export default function BusinessPlanPage({
                   시장 검증 지원
                 </Badge>
               </div>
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
-                onClick={() => {
-                  const subject = encodeURIComponent(`[MVP 제작 문의] ${idea.title}`);
-                  
-                  // 사업계획서 전체 내용 포맷팅
-                  let businessPlanContent = '\n\n========== 사업계획서 ==========\n\n';
-                  
-                  // 메타데이터
-                  businessPlanContent += `📊 사업 개요\n`;
-                  businessPlanContent += `타겟 시장: ${businessPlan.metadata.targetMarket}\n`;
-                  businessPlanContent += `비즈니스 모델: ${businessPlan.metadata.businessModel}\n`;
-                  businessPlanContent += `필요 자금: ${businessPlan.metadata.fundingNeeded}\n`;
-                  businessPlanContent += `시장 출시: ${businessPlan.metadata.timeToMarket}\n\n`;
-                  
-                  // 각 섹션
-                  businessPlan.sections.forEach((section: any, index: number) => {
-                    businessPlanContent += `\n${'='.repeat(50)}\n`;
-                    businessPlanContent += `${index + 1}. ${section.title}\n`;
-                    businessPlanContent += `${'='.repeat(50)}\n\n`;
-                    businessPlanContent += section.content + '\n\n';
-                  });
-                  
-                  const body = encodeURIComponent(
-                    `안녕하세요,\n\n사업계획서를 작성한 아이디어에 대해 MVP 제작을 문의하고 싶습니다.\n\n` +
-                    `아이디어 제목: ${idea.title}\n` +
-                    `요약: ${idea.summary}\n` +
-                    businessPlanContent +
-                    `\n\n상세한 논의를 위해 연락 부탁드립니다.\n\n감사합니다.`
-                  );
-                  
-                  window.location.href = `mailto:info@dapercorp.com?subject=${subject}&body=${body}`;
-                }}
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                MVP 제작 문의하기
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
+                  onClick={() => {
+                    const subject = encodeURIComponent(`[MVP 제작 문의] ${idea.title}`);
+                    const body = encodeURIComponent(
+                      `안녕하세요,\n\n사업계획서를 작성한 아이디어에 대해 MVP 제작을 문의하고 싶습니다.\n\n` +
+                      `아이디어 제목: ${idea.title}\n` +
+                      `요약: ${idea.summary}\n\n` +
+                      `※ 전체 사업계획서는 첨부파일로 함께 보내드립니다.\n\n` +
+                      `상세한 논의를 위해 연락 부탁드립니다.\n\n감사합니다.`
+                    );
+                    
+                    // 이메일 열기
+                    window.location.href = `mailto:info@dapercorp.com?subject=${subject}&body=${body}`;
+                    
+                    // 사업계획서 자동 다운로드
+                    setTimeout(() => {
+                      handleExport('markdown');
+                      
+                      toast({
+                        title: '사업계획서 다운로드됨',
+                        description: '이메일에 다운로드된 파일을 첨부해서 보내주세요.',
+                      });
+                    }, 500);
+                  }}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  MVP 제작 문의하기
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  onClick={() => handleExport('markdown')}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  사업계획서 다운로드
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
