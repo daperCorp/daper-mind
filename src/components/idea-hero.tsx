@@ -6,7 +6,9 @@ import { LoaderCircle, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { generateIdea, type GeneratedIdea } from '@/app/actions';
-import { getUserUsage } from '@/lib/firebase-client'; // ✅ 클라이언트에서 import
+import {  saveGeneratedIdea, 
+  incrementUserApiUsage,
+   getUserUsage } from '@/lib/firebase-client'; // ✅ 클라이언트에서 import
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { OutlineDisplay } from '@/components/outline-display';
@@ -119,37 +121,91 @@ useEffect(() => {
 const lastShownIdRef = useRef<string | null>(null);
 
 // 결과 처리 effect 수정
+// useEffect 완전 교체
 useEffect(() => {
-  const id = state.data?.id ?? null;
-
-  // 결과/에러로 pending 해제
-  if (pending && (state.error || id)) {
-    setPending(false);
-  }
-
-  if (state.error) {
-    console.error('Generation error:', state.error);
-    toast({ variant: 'destructive', title: t('error'), description: state.error });
-    requestIdRef.current = generateRequestId();
-    lastShownIdRef.current = null;
-    return; // 에러면 종료
-  }
-
-  // ✅ 새로운 결과 id일 때만 다이얼로그 열기
-  if (id && lastShownIdRef.current !== id) {
-    lastShownIdRef.current = id;
-    setResult(state.data);
-    setIdea('');
-    formRef.current?.reset();
-    setOpen(true);
-    requestIdRef.current = generateRequestId();
-
-    if (role === 'free') {
-      setDailyLeft(prev => (typeof prev === 'number' ? Math.max(0, prev - 1) : prev));
-      setIdeasLeft(prev => (typeof prev === 'number' ? Math.max(0, prev - 1) : prev));
+  const handleResult = async () => {
+    // pending 해제
+    if (pending && (state.error || state.data)) {
+      setPending(false);
     }
-  }
-}, [state]); // ✅ 오직 state만
+
+    // 에러 처리
+    if (state.error) {
+      console.error('Generation error:', state.error);
+      toast({ 
+        variant: 'destructive', 
+        title: t('error'), 
+        description: state.error 
+      });
+      lastShownIdRef.current = null;
+      requestIdRef.current = generateRequestId();
+      return;
+    }
+
+    // ✅ AI 생성 성공 && 아직 저장 안 됨 && 로그인됨
+    if (state.data && !state.data.id && user?.uid) {
+      try {
+        console.log('💾 Firestore에 저장 시작...');
+
+        // 1. 사용량 증가 (무료 사용자만)
+        if (role === 'free') {
+          await incrementUserApiUsage(user.uid);
+        }
+
+        // 2. 아이디어 저장
+        const { id: savedId, error: saveError } = await saveGeneratedIdea(
+          user.uid,
+          {
+            title: state.data.title,
+            summary: state.data.summary,
+            outline: state.data.outline,
+            language: state.data.language || 'English',
+          },
+          requestIdRef.current
+        );
+
+        if (saveError || !savedId) {
+          throw new Error(saveError || 'Failed to save');
+        }
+
+        console.log('✅ 저장 완료:', savedId);
+
+        // 3. 저장된 ID 포함하여 결과 표시
+        const ideaWithId = { ...state.data, id: savedId };
+        
+        if (lastShownIdRef.current !== savedId) {
+          lastShownIdRef.current = savedId;
+          setResult(ideaWithId);
+          setIdea('');
+          formRef.current?.reset();
+          setOpen(true);
+          requestIdRef.current = generateRequestId();
+
+          // 로컬 사용량 업데이트
+          if (role === 'free') {
+            setDailyLeft(prev => (typeof prev === 'number' ? Math.max(0, prev - 1) : prev));
+            setIdeasLeft(prev => (typeof prev === 'number' ? Math.max(0, prev - 1) : prev));
+          }
+
+          toast({
+            title: t('success'),
+            description: t('ideaGenerated'),
+          });
+        }
+      } catch (error: any) {
+        console.error('❌ 저장 실패:', error);
+        toast({
+          variant: 'destructive',
+          title: t('error'),
+          description: 'Failed to save generated idea. Please try again.',
+        });
+        lastShownIdRef.current = null;
+      }
+    }
+  };
+
+  handleResult();
+}, [state, pending, role, user, toast, t]);
 
 
   // 다이얼로그 닫기 핸들러

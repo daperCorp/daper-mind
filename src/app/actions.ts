@@ -109,6 +109,180 @@ async function getUserDataServer(userId: string): Promise<{
  * AI Idea Generation (서버 전용)
  * =======================*/
 
+// export async function generateIdea(
+//   prevState: any,
+//   formData: FormData
+// ): Promise<{ data: GeneratedIdea | null; error: string | null }> {
+//   const validated = IdeaSchema.safeParse({
+//     idea: formData.get('idea'),
+//     userId: formData.get('userId'),
+//     language: formData.get('language'),
+//     requestId: formData.get('requestId'),
+//   });
+
+//   if (!validated.success) {
+//     const f = validated.error.flatten().fieldErrors;
+//     return { 
+//       data: null, 
+//       error: f.idea?.[0] || f.userId?.[0] || f.language?.[0] || f.requestId?.[0] || 'Invalid input.' 
+//     };
+//   }
+
+//   const { idea: ideaDescription, userId, language, requestId } = validated.data;
+
+//   // 중복 제출 방지
+//   const lockRef = doc(db, 'locks', requestId);
+//   const locked = await runTransaction(db, async (tx) => {
+//     const snap = await tx.get(lockRef);
+//     if (snap.exists()) return false;
+//     tx.set(lockRef, { userId, createdAt: serverTimestamp(), status: 'processing' });
+//     return true;
+//   });
+
+//   if (!locked) {
+//     return { data: null, error: 'Duplicate submission detected. Please wait.' };
+//   }
+
+//   try {
+//     // 1. 사용자 데이터 로드 및 제한 확인
+//     const { data: userData, error: userError } = await getUserDataServer(userId);
+//     if (userError || !userData) {
+//       return { data: null, error: userError || 'User data not found.' };
+//     }
+
+//     if ((userData.role ?? 'free') === 'free') {
+//       // 총 아이디어 제한
+//       if ((userData.ideaCount ?? 0) >= FREE_USER_IDEA_LIMIT) {
+//         return {
+//           data: null,
+//           error: 'Free users are limited to 5 saved ideas. Please upgrade to create more.',
+//         };
+//       }
+
+//       // 일일 생성 제한
+//       const now = new Date();
+//       const last = userData.lastApiRequestDate;
+//       let currentCount = userData.apiRequestCount ?? 0;
+
+//       if (last) {
+//         const oneDayMs = 24 * 60 * 60 * 1000;
+//         if (now.getTime() - last.getTime() > oneDayMs) {
+//           currentCount = 0;
+//         }
+//       }
+
+//       if (currentCount >= FREE_USER_API_LIMIT) {
+//         return {
+//           data: null,
+//           error: 'Free users are limited to 2 idea generations per day. Please upgrade to generate more.',
+//         };
+//       }
+//     }
+
+//     // 2. AI 콘텐츠 생성 (재시도 로직 포함)
+//     const maxRetries = 2;
+//     let titleResult: any = null;
+//     let summaryResult: any = null;
+//     let outlineResult: any = null;
+
+//     for (let attempt = 0; attempt <= maxRetries; attempt++) {
+//       try {
+//         [titleResult, summaryResult, outlineResult] = await Promise.all([
+//           generateIdeaTitle({ ideaDescription, language }),
+//           generateIdeaSummary({ idea: ideaDescription, language }),
+//           generateIdeaOutline({ idea: ideaDescription, language }),
+//         ]);
+//         break;
+//       } catch (error: any) {
+//         console.error(`AI generation attempt ${attempt + 1} failed:`, error);
+        
+//         if (error.message?.includes('503') && attempt < maxRetries) {
+//           console.log(`Retrying after 503 error, attempt ${attempt + 2}...`);
+//           await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+//           continue;
+//         }
+//         throw error;
+//       }
+//     }
+
+//     // 3. AI 생성 성공 후 사용량 증가 (무료 사용자만)
+//     if ((userData.role ?? 'free') === 'free') {
+//       const userRef = doc(db, 'users', userId);
+//       await runTransaction(db, async (tx) => {
+//         const snap = await tx.get(userRef);
+//         if (!snap.exists()) throw new Error('User not found.');
+
+//         const curr = snap.data() as {
+//           apiRequestCount?: number;
+//           lastApiRequestDate?: Timestamp | null;
+//         };
+
+//         let count = curr.apiRequestCount ?? 0;
+//         const lastTs = curr.lastApiRequestDate instanceof Timestamp 
+//           ? curr.lastApiRequestDate.toDate() 
+//           : null;
+//         const now = new Date();
+
+//         if (lastTs) {
+//           const oneDayMs = 24 * 60 * 60 * 1000;
+//           if (now.getTime() - lastTs.getTime() > oneDayMs) {
+//             count = 0;
+//           }
+//         }
+
+//         if (count >= FREE_USER_API_LIMIT) {
+//           throw new Error('Free users are limited to 2 idea generations per day.');
+//         }
+
+//         tx.update(userRef, {
+//           apiRequestCount: count + 1,
+//           lastApiRequestDate: serverTimestamp(),
+//         });
+//       });
+//     }
+
+//     // 4. 아이디어 저장
+//     const newIdea = {
+//       title: titleResult.ideaTitle,
+//       summary: summaryResult.summary,
+//       outline: outlineResult.outline,
+//       favorited: false,
+//       userId,
+//       language,
+//     };
+
+//     const ideaRef = await addDoc(collection(db, 'ideas'), {
+//       ...newIdea,
+//       requestId,
+//       createdAt: serverTimestamp(),
+//     });
+
+//     // 5. 사용자 ideaCount 증가
+//     await updateDoc(doc(db, 'users', userId), {
+//       ideaCount: increment(1),
+//     });
+
+//     return {
+//       data: { id: ideaRef.id, ...newIdea },
+//       error: null,
+//     };
+//   } catch (error: any) {
+//     console.error('Error in generateIdea:', error);
+
+//     let errorMessage = 'Failed to generate idea. Please try again.';
+
+//     if (error?.message?.includes('503') || error?.message?.includes('Service Unavailable')) {
+//       errorMessage = 'AI service is temporarily unavailable. Please try again in a few minutes. Your usage quota has not been affected.';
+//     } else if (error?.message?.includes('Free users are limited')) {
+//       errorMessage = error.message;
+//     }
+
+//     return { data: null, error: errorMessage };
+//   }
+// }
+
+// actions.ts
+
 export async function generateIdea(
   prevState: any,
   formData: FormData
@@ -130,203 +304,82 @@ export async function generateIdea(
 
   const { idea: ideaDescription, userId, language, requestId } = validated.data;
 
-  // 중복 제출 방지
-  const lockRef = doc(db, 'locks', requestId);
-  const locked = await runTransaction(db, async (tx) => {
-    const snap = await tx.get(lockRef);
-    if (snap.exists()) return false;
-    tx.set(lockRef, { userId, createdAt: serverTimestamp(), status: 'processing' });
-    return true;
-  });
-
-  if (!locked) {
-    return { data: null, error: 'Duplicate submission detected. Please wait.' };
-  }
-
   try {
-    // 1. 사용자 데이터 로드 및 제한 확인
-    const { data: userData, error: userError } = await getUserDataServer(userId);
-    if (userError || !userData) {
-      return { data: null, error: userError || 'User data not found.' };
-    }
+    // AI 생성만 서버에서 수행 (Firestore 접근 없음)
+    const [titleResult, summaryResult, outlineResult] = await Promise.all([
+      generateIdeaTitle({ ideaDescription, language }),
+      generateIdeaSummary({ idea: ideaDescription, language }),
+      generateIdeaOutline({ idea: ideaDescription, language }),
+    ]);
 
-    if ((userData.role ?? 'free') === 'free') {
-      // 총 아이디어 제한
-      if ((userData.ideaCount ?? 0) >= FREE_USER_IDEA_LIMIT) {
-        return {
-          data: null,
-          error: 'Free users are limited to 5 saved ideas. Please upgrade to create more.',
-        };
-      }
-
-      // 일일 생성 제한
-      const now = new Date();
-      const last = userData.lastApiRequestDate;
-      let currentCount = userData.apiRequestCount ?? 0;
-
-      if (last) {
-        const oneDayMs = 24 * 60 * 60 * 1000;
-        if (now.getTime() - last.getTime() > oneDayMs) {
-          currentCount = 0;
-        }
-      }
-
-      if (currentCount >= FREE_USER_API_LIMIT) {
-        return {
-          data: null,
-          error: 'Free users are limited to 2 idea generations per day. Please upgrade to generate more.',
-        };
-      }
-    }
-
-    // 2. AI 콘텐츠 생성 (재시도 로직 포함)
-    const maxRetries = 2;
-    let titleResult: any = null;
-    let summaryResult: any = null;
-    let outlineResult: any = null;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        [titleResult, summaryResult, outlineResult] = await Promise.all([
-          generateIdeaTitle({ ideaDescription, language }),
-          generateIdeaSummary({ idea: ideaDescription, language }),
-          generateIdeaOutline({ idea: ideaDescription, language }),
-        ]);
-        break;
-      } catch (error: any) {
-        console.error(`AI generation attempt ${attempt + 1} failed:`, error);
-        
-        if (error.message?.includes('503') && attempt < maxRetries) {
-          console.log(`Retrying after 503 error, attempt ${attempt + 2}...`);
-          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-          continue;
-        }
-        throw error;
-      }
-    }
-
-    // 3. AI 생성 성공 후 사용량 증가 (무료 사용자만)
-    if ((userData.role ?? 'free') === 'free') {
-      const userRef = doc(db, 'users', userId);
-      await runTransaction(db, async (tx) => {
-        const snap = await tx.get(userRef);
-        if (!snap.exists()) throw new Error('User not found.');
-
-        const curr = snap.data() as {
-          apiRequestCount?: number;
-          lastApiRequestDate?: Timestamp | null;
-        };
-
-        let count = curr.apiRequestCount ?? 0;
-        const lastTs = curr.lastApiRequestDate instanceof Timestamp 
-          ? curr.lastApiRequestDate.toDate() 
-          : null;
-        const now = new Date();
-
-        if (lastTs) {
-          const oneDayMs = 24 * 60 * 60 * 1000;
-          if (now.getTime() - lastTs.getTime() > oneDayMs) {
-            count = 0;
-          }
-        }
-
-        if (count >= FREE_USER_API_LIMIT) {
-          throw new Error('Free users are limited to 2 idea generations per day.');
-        }
-
-        tx.update(userRef, {
-          apiRequestCount: count + 1,
-          lastApiRequestDate: serverTimestamp(),
-        });
-      });
-    }
-
-    // 4. 아이디어 저장
-    const newIdea = {
-      title: titleResult.ideaTitle,
-      summary: summaryResult.summary,
-      outline: outlineResult.outline,
-      favorited: false,
-      userId,
-      language,
-    };
-
-    const ideaRef = await addDoc(collection(db, 'ideas'), {
-      ...newIdea,
-      requestId,
-      createdAt: serverTimestamp(),
-    });
-
-    // 5. 사용자 ideaCount 증가
-    await updateDoc(doc(db, 'users', userId), {
-      ideaCount: increment(1),
-    });
-
+    // AI 생성된 데이터만 반환 (저장은 클라이언트에서)
     return {
-      data: { id: ideaRef.id, ...newIdea },
+      data: {
+        title: titleResult.ideaTitle,
+        summary: summaryResult.summary,
+        outline: outlineResult.outline,
+        favorited: false,
+        userId,
+        language,
+      },
       error: null,
     };
   } catch (error: any) {
     console.error('Error in generateIdea:', error);
-
-    let errorMessage = 'Failed to generate idea. Please try again.';
-
-    if (error?.message?.includes('503') || error?.message?.includes('Service Unavailable')) {
-      errorMessage = 'AI service is temporarily unavailable. Please try again in a few minutes. Your usage quota has not been affected.';
-    } else if (error?.message?.includes('Free users are limited')) {
-      errorMessage = error.message;
-    }
-
-    return { data: null, error: errorMessage };
+    return { 
+      data: null, 
+      error: 'Failed to generate idea. Please try again.' 
+    };
   }
 }
+
 
 /* =========================
  * Usage Tracking (서버 전용)
  * =======================*/
 
-export async function getUserUsage(userId: string): Promise<{
-  role: 'free' | 'paid';
-  dailyLeft: number | null;
-  ideasLeft: number | null;
-  error?: string | null;
-}> {
-  try {
-    const { data, error } = await getUserDataServer(userId);
-    if (error || !data) {
-      return { role: 'free', dailyLeft: 0, ideasLeft: 0, error: error ?? 'User not found' };
-    }
+// export async function getUserUsage(userId: string): Promise<{
+//   role: 'free' | 'paid';
+//   dailyLeft: number | null;
+//   ideasLeft: number | null;
+//   error?: string | null;
+// }> {
+//   try {
+//     const { data, error } = await getUserDataServer(userId);
+//     if (error || !data) {
+//       return { role: 'free', dailyLeft: 0, ideasLeft: 0, error: error ?? 'User not found' };
+//     }
 
-    const role = data.role ?? 'free';
+//     const role = data.role ?? 'free';
 
-    if (role === 'paid') {
-      return { role, dailyLeft: null, ideasLeft: null, error: null };
-    }
+//     if (role === 'paid') {
+//       return { role, dailyLeft: null, ideasLeft: null, error: null };
+//     }
 
-    // 무료 사용자 사용량 계산
-    const now = new Date();
-    const last = data.lastApiRequestDate;
-    let usedToday = data.apiRequestCount ?? 0;
+//     // 무료 사용자 사용량 계산
+//     const now = new Date();
+//     const last = data.lastApiRequestDate;
+//     let usedToday = data.apiRequestCount ?? 0;
 
-    if (last) {
-      const oneDayMs = 24 * 60 * 60 * 1000;
-      if (now.getTime() - last.getTime() > oneDayMs) {
-        usedToday = 0;
-      }
-    } else {
-      usedToday = 0;
-    }
+//     if (last) {
+//       const oneDayMs = 24 * 60 * 60 * 1000;
+//       if (now.getTime() - last.getTime() > oneDayMs) {
+//         usedToday = 0;
+//       }
+//     } else {
+//       usedToday = 0;
+//     }
 
-    const dailyLeft = Math.max(0, FREE_USER_API_LIMIT - usedToday);
-    const totalIdeasUsed = data.ideaCount ?? 0;
-    const ideasLeft = Math.max(0, FREE_USER_IDEA_LIMIT - totalIdeasUsed);
+//     const dailyLeft = Math.max(0, FREE_USER_API_LIMIT - usedToday);
+//     const totalIdeasUsed = data.ideaCount ?? 0;
+//     const ideasLeft = Math.max(0, FREE_USER_IDEA_LIMIT - totalIdeasUsed);
 
-    return { role, dailyLeft, ideasLeft, error: null };
-  } catch (e) {
-    console.error('getUserUsage error:', e);
-    return { role: 'free', dailyLeft: 0, ideasLeft: 0, error: 'Failed to fetch usage' };
-  }
-}
+//     return { role, dailyLeft, ideasLeft, error: null };
+//   } catch (e) {
+//     console.error('getUserUsage error:', e);
+//     return { role: 'free', dailyLeft: 0, ideasLeft: 0, error: 'Failed to fetch usage' };
+//   }
+// }
 
 /* =========================
  * Mind Map AI Generation (서버 전용)

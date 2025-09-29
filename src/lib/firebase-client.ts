@@ -11,7 +11,8 @@ import {
     serverTimestamp,
     Timestamp,
     increment,
-    runTransaction
+    runTransaction,
+    addDoc  
   } from 'firebase/firestore';
   import { db } from '@/lib/firebase';
   import type { MindMapNode } from '@/ai/flows/generate-idea-mindmap';
@@ -713,4 +714,68 @@ export async function getUserUsage(userId: string): Promise<{
     console.error('getUserUsage error:', e);
     return { role: 'free', dailyLeft: 0, ideasLeft: 0, error: 'Failed to fetch usage' };
   }
+}
+
+
+export async function saveGeneratedIdea(
+  userId: string,
+  ideaData: {
+    title: string;
+    summary: string;
+    outline: string;
+    language: 'English' | 'Korean';
+  },
+  requestId: string
+): Promise<{ id: string | null; error: string | null }> {
+  try {
+    // 아이디어 저장
+    const ideaRef = await addDoc(collection(db, 'ideas'), {
+      ...ideaData,
+      userId,
+      favorited: false,
+      createdAt: serverTimestamp(),
+    });
+
+    // 사용자 카운트 증가
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      ideaCount: increment(1),
+    });
+
+    return { id: ideaRef.id, error: null };
+  } catch (error: any) {
+    console.error('Error saving idea:', error);
+    return { id: null, error: error.message };
+  }
+}
+
+export async function incrementUserApiUsage(userId: string): Promise<void> {
+  const userRef = doc(db, 'users', userId);
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(userRef);
+    if (!snap.exists()) throw new Error('User not found.');
+    
+    const curr = snap.data() as {
+      apiRequestCount?: number;
+      lastApiRequestDate?: Timestamp | null;
+    };
+
+    let count = curr.apiRequestCount ?? 0;
+    const lastTs = curr.lastApiRequestDate instanceof Timestamp 
+      ? curr.lastApiRequestDate.toDate() 
+      : null;
+    const now = new Date();
+
+    if (lastTs) {
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      if (now.getTime() - lastTs.getTime() > oneDayMs) {
+        count = 0;
+      }
+    }
+
+    tx.update(userRef, {
+      apiRequestCount: count + 1,
+      lastApiRequestDate: serverTimestamp(),
+    });
+  });
 }
