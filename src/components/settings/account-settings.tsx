@@ -80,7 +80,7 @@ useEffect(() => {
   const ideasUsed = role === 'free' && typeof ideasLeft === 'number' ? Math.max(0, ideasMax - ideasLeft) : 0;
   const safePct = (n: number) => Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 0;
 const dailyPct = role === 'free' && typeof dailyLeft === 'number'
-  ? safePct((ideasUsed   / dailyMax) * 100)
+  ? safePct((dailyUsed   / dailyMax) * 100)
   : 0;
 const ideasPct = role === 'free' && typeof ideasLeft === 'number'
   ? safePct((ideasLeft   / ideasMax) * 100)
