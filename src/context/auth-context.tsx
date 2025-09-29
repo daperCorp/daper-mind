@@ -12,7 +12,6 @@ import {
   type User
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { upsertUser, type SerializableUser } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { upsertUserClient } from '@/lib/firebase-client';
