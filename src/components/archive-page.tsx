@@ -4,12 +4,17 @@ import { useEffect, useMemo, useState, useTransition, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowUpDown, BrainCircuit, LayoutGrid, Rows3, Star, Trash2, Calendar } from 'lucide-react';
 import {
-  getArchivedIdeas,
+  // 서버 액션 (AI 생성만)
   regenerateMindMap,
-  toggleFavorite,
-  deleteIdea,
   type GeneratedIdea,
 } from '@/app/actions';
+
+import {
+  // 클라이언트 함수 (Firestore CRUD)
+  getArchivedIdeas,
+  toggleFavorite,
+  deleteIdea,
+} from '@/lib/firebase-client';
 import {
   Card,
   CardContent,

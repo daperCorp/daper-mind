@@ -130,6 +130,7 @@ useEffect(() => {
     console.error('Generation error:', state.error);
     toast({ variant: 'destructive', title: t('error'), description: state.error });
     requestIdRef.current = generateRequestId();
+    lastShownIdRef.current = null;
     return; // 에러면 종료
   }
 

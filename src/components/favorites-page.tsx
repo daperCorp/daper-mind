@@ -3,7 +3,18 @@
 import { useEffect, useState, useTransition, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { BrainCircuit, Star, Calendar, Trash2, ArrowUpDown, LayoutGrid, Rows3 } from 'lucide-react';
-import { getFavoritedIdeas, regenerateMindMap, toggleFavorite, deleteIdea, type GeneratedIdea } from '@/app/actions';
+import {
+  // 서버 액션 (AI 생성만)
+  regenerateMindMap,
+  type GeneratedIdea,
+} from '@/app/actions';
+
+import {
+  // 클라이언트 함수 (Firestore CRUD)
+  getFavoritedIdeas,
+  toggleFavorite,
+  deleteIdea,
+} from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
