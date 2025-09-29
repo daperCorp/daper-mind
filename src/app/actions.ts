@@ -6,6 +6,8 @@ import { generateIdeaSummary } from '@/ai/flows/generate-idea-summary';
 import { generateIdeaOutline } from '@/ai/flows/generate-idea-outline';
 import { generateIdeaMindMap, type MindMapNode } from '@/ai/flows/generate-idea-mindmap';
 import { generateMindMapNode } from '@/ai/flows/generate-mindmap-node';
+import { generateAISuggestions as generateAISuggestionsFlow } from '@/ai/flows/generate-ai-suggestions';
+import type { GenerateAISuggestionsOutput } from '@/ai/flows/generate-ai-suggestions';
 import { z } from 'zod';
 import { db } from '@/lib/firebase';
 import {
@@ -38,17 +40,17 @@ const IdeaSchema = z.object({
   requestId: z.string().min(1, { message: 'Request ID is required.' }), // ✅ 추가
 });
 
-export type GeneratedIdea = {
-  id?: string;
-  title: string;
-  summary: string;
-  outline: string;
-  mindMap?: MindMapNode;
-  favorited?: boolean;
-  createdAt?: Date;
-  userId?: string;
-  language?: 'English' | 'Korean';
-};
+// export type GeneratedIdea = {
+//   id?: string;
+//   title: string;
+//   summary: string;
+//   outline: string;
+//   mindMap?: MindMapNode;
+//   favorited?: boolean;
+//   createdAt?: Date;
+//   userId?: string;
+//   language?: 'English' | 'Korean';
+// };
 
 export type SerializableUser = {
   uid: string;
@@ -598,31 +600,31 @@ export async function getFavoritedIdeas(userId: string): Promise<{ data: Generat
   }
 }
 
-export async function getIdeaById(id: string): Promise<{ data: GeneratedIdea | null; error: string | null }> {
-  try {
-    const ref = doc(db, 'ideas', id);
-    const snap = await getDoc(ref);
+// export async function getIdeaById(id: string): Promise<{ data: GeneratedIdea | null; error: string | null }> {
+//   try {
+//     const ref = doc(db, 'ideas', id);
+//     const snap = await getDoc(ref);
 
-    if (!snap.exists()) return { data: null, error: 'Idea not found.' };
+//     if (!snap.exists()) return { data: null, error: 'Idea not found.' };
 
-    const data = snap.data() as any;
-    const idea: GeneratedIdea = {
-      id: snap.id,
-      title: data.title,
-      summary: data.summary,
-      outline: data.outline,
-      mindMap: data.mindMap,
-      favorited: data.favorited,
-      createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
-      userId: data.userId,
-      language: data.language || 'English',
-    };
-    return { data: idea, error: null };
-  } catch (err) {
-    console.error('Error fetching idea:', err);
-    return { data: null, error: 'Failed to fetch idea.' };
-  }
-}
+//     const data = snap.data() as any;
+//     const idea: GeneratedIdea = {
+//       id: snap.id,
+//       title: data.title,
+//       summary: data.summary,
+//       outline: data.outline,
+//       mindMap: data.mindMap,
+//       favorited: data.favorited,
+//       createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
+//       userId: data.userId,
+//       language: data.language || 'English',
+//     };
+//     return { data: idea, error: null };
+//   } catch (err) {
+//     console.error('Error fetching idea:', err);
+//     return { data: null, error: 'Failed to fetch idea.' };
+//   }
+// }
 
 /* =========================
  * Ideas: Mutations
@@ -1118,4 +1120,203 @@ export async function updateIdeaContentSecure(
     return { success: false, error: error.message || 'Failed to update idea.' };
   }
 }
-  
+  // actions.ts 파일에 추가할 부분
+
+
+/**
+ * AI 개선 제안 생성 (유료 사용자 전용)
+ */
+export async function generateAISuggestions(input: {
+  ideaId: string;
+  title: string;
+  summary: string;
+  outline: string;
+  language: 'English' | 'Korean';
+}): Promise<GenerateAISuggestionsOutput> {
+  try {
+    const { ideaId, title, summary, outline, language } = input;
+
+    // 1. 아이디어 소유자 확인
+    const ideaRef = doc(db, 'ideas', ideaId);
+    const ideaSnap = await getDoc(ideaRef);
+    
+    if (!ideaSnap.exists()) {
+      throw new Error('Idea not found');
+    }
+
+    const ideaData = ideaSnap.data();
+    const userId = ideaData.userId;
+
+    // 2. 사용자 권한 확인
+    const { data: userData, error: userError } = await getUserData(userId);
+    if (userError || !userData) {
+      throw new Error('User not found');
+    }
+
+    if ((userData.role ?? 'free') !== 'paid') {
+      throw new Error('Premium feature - Upgrade to Pro plan');
+    }
+
+    // 3. AI 분석 생성
+    const result = await generateAISuggestionsFlow({
+      ideaId,
+      title,
+      summary,
+      outline,
+      language,
+    });
+
+    return result;
+  } catch (error: any) {
+    console.error('Error generating AI suggestions:', error);
+    throw error;
+  }
+}
+
+/**
+ * AI 분석 결과를 Firebase에 저장
+ */
+export async function saveAISuggestions(
+  ideaId: string,
+  suggestions: GenerateAISuggestionsOutput
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!ideaId) {
+      return { success: false, error: 'Idea ID is required' };
+    }
+
+    const ideaRef = doc(db, 'ideas', ideaId);
+    
+    // 트랜잭션으로 안전하게 업데이트
+    await runTransaction(db, async (transaction) => {
+      const ideaDoc = await transaction.get(ideaRef);
+      
+      if (!ideaDoc.exists()) {
+        throw new Error('Idea not found');
+      }
+
+      const ideaData = ideaDoc.data();
+      const userId = ideaData.userId;
+
+      // 사용자 권한 재확인
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await transaction.get(userRef);
+      
+      if (!userDoc.exists()) {
+        throw new Error('User not found');
+      }
+
+      const userData = userDoc.data();
+      if ((userData.role ?? 'free') !== 'paid') {
+        throw new Error('Premium feature - Upgrade to Pro plan');
+      }
+
+      // AI 분석 저장
+      transaction.update(ideaRef, {
+        aiSuggestions: suggestions,
+        updatedAt: serverTimestamp(),
+      });
+    });
+
+    // 캐시 무효화
+    revalidatePath(`/idea/${ideaId}`);
+
+    console.log('AI suggestions saved successfully:', ideaId);
+    return { success: true };
+
+  } catch (error: any) {
+    console.error('Error saving AI suggestions:', error);
+    
+    let errorMessage = 'Failed to save AI suggestions';
+    if (error.message?.includes('Premium feature')) {
+      errorMessage = error.message;
+    } else if (error.message?.includes('not found')) {
+      errorMessage = error.message;
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
+ * 저장된 AI 분석 가져오기
+ */
+export async function getAISuggestions(
+  ideaId: string
+): Promise<{ data: GenerateAISuggestionsOutput | null; error: string | null }> {
+  try {
+    if (!ideaId) {
+      return { data: null, error: 'Idea ID is required' };
+    }
+
+    const ideaRef = doc(db, 'ideas', ideaId);
+    const ideaSnap = await getDoc(ideaRef);
+
+    if (!ideaSnap.exists()) {
+      return { data: null, error: 'Idea not found' };
+    }
+
+    const ideaData = ideaSnap.data();
+    
+    // 권한 확인 (선택사항: 소유자만 볼 수 있게 하려면)
+    // const userId = ideaData.userId;
+    // const { data: userData } = await getUserData(userId);
+    // if (!userData || userData.role !== 'paid') {
+    //   return { data: null, error: 'Premium feature' };
+    // }
+
+    const aiSuggestions = ideaData.aiSuggestions as GenerateAISuggestionsOutput | undefined;
+
+    if (!aiSuggestions) {
+      return { data: null, error: null }; // 아직 생성되지 않음
+    }
+
+    return { data: aiSuggestions, error: null };
+
+  } catch (error: any) {
+    console.error('Error fetching AI suggestions:', error);
+    return { data: null, error: 'Failed to fetch AI suggestions' };
+  }
+}
+
+// GeneratedIdea 타입에 aiSuggestions 추가
+export type GeneratedIdea = {
+  id?: string;
+  title: string;
+  summary: string;
+  outline: string;
+  mindMap?: MindMapNode;
+  aiSuggestions?: GenerateAISuggestionsOutput; // ✅ 추가
+  favorited?: boolean;
+  createdAt?: Date;
+  userId?: string;
+  language?: 'English' | 'Korean';
+};
+
+// getIdeaById 함수 업데이트 (aiSuggestions 포함)
+export async function getIdeaById(id: string): Promise<{ data: GeneratedIdea | null; error: string | null }> {
+  try {
+    const ref = doc(db, 'ideas', id);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) return { data: null, error: 'Idea not found.' };
+
+    const data = snap.data() as any;
+    const idea: GeneratedIdea = {
+      id: snap.id,
+      title: data.title,
+      summary: data.summary,
+      outline: data.outline,
+      mindMap: data.mindMap,
+      aiSuggestions: data.aiSuggestions, // ✅ 추가
+      favorited: data.favorited,
+      createdAt: data.createdAt ? data.createdAt.toDate() : undefined,
+      userId: data.userId,
+      language: data.language || 'English',
+    };
+    return { data: idea, error: null };
+  } catch (err) {
+    console.error('Error fetching idea:', err);
+    return { data: null, error: 'Failed to fetch idea.' };
+  }
+}
