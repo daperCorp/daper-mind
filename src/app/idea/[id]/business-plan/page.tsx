@@ -375,6 +375,78 @@ export default function BusinessPlanPage({
         </div>
       </div>
 
+      {/* MVP 제작 제안 배너 */}
+      <Card className="border-2 border-gradient-to-r from-emerald-200 to-teal-200 bg-gradient-to-br from-emerald-50 to-teal-50">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+              <Zap className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-emerald-900 mb-1">
+                이 아이디어를 실제로 구현해보세요!
+              </h3>
+              <p className="text-sm text-emerald-800 mb-3">
+                전문 개발팀이 당신의 사업계획서를 바탕으로 <strong>MVP(최소 기능 제품)를 무료로 제작</strong>해드립니다. 
+                아이디어 검증부터 초기 고객 확보까지, 함께 성장할 파트너를 찾고 있습니다.
+              </p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Badge variant="outline" className="bg-white/80 text-emerald-700 border-emerald-300">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  MVP 무료 제작
+                </Badge>
+                <Badge variant="outline" className="bg-white/80 text-emerald-700 border-emerald-300">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  기술 컨설팅
+                </Badge>
+                <Badge variant="outline" className="bg-white/80 text-emerald-700 border-emerald-300">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  시장 검증 지원
+                </Badge>
+              </div>
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg"
+                onClick={() => {
+                  const subject = encodeURIComponent(`[MVP 제작 문의] ${idea.title}`);
+                  
+                  // 사업계획서 전체 내용 포맷팅
+                  let businessPlanContent = '\n\n========== 사업계획서 ==========\n\n';
+                  
+                  // 메타데이터
+                  businessPlanContent += `📊 사업 개요\n`;
+                  businessPlanContent += `타겟 시장: ${businessPlan.metadata.targetMarket}\n`;
+                  businessPlanContent += `비즈니스 모델: ${businessPlan.metadata.businessModel}\n`;
+                  businessPlanContent += `필요 자금: ${businessPlan.metadata.fundingNeeded}\n`;
+                  businessPlanContent += `시장 출시: ${businessPlan.metadata.timeToMarket}\n\n`;
+                  
+                  // 각 섹션
+                  businessPlan.sections.forEach((section: any, index: number) => {
+                    businessPlanContent += `\n${'='.repeat(50)}\n`;
+                    businessPlanContent += `${index + 1}. ${section.title}\n`;
+                    businessPlanContent += `${'='.repeat(50)}\n\n`;
+                    businessPlanContent += section.content + '\n\n';
+                  });
+                  
+                  const body = encodeURIComponent(
+                    `안녕하세요,\n\n사업계획서를 작성한 아이디어에 대해 MVP 제작을 문의하고 싶습니다.\n\n` +
+                    `아이디어 제목: ${idea.title}\n` +
+                    `요약: ${idea.summary}\n` +
+                    businessPlanContent +
+                    `\n\n상세한 논의를 위해 연락 부탁드립니다.\n\n감사합니다.`
+                  );
+                  
+                  window.location.href = `mailto:info@dapercorp.com?subject=${subject}&body=${body}`;
+                }}
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                MVP 제작 문의하기
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 메타데이터 카드 */}
       <Card>
         <CardContent className="pt-6">
