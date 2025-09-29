@@ -15,7 +15,7 @@ import { auth } from '@/lib/firebase';
 import { upsertUser, type SerializableUser } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-
+import { upsertUserClient } from '@/lib/firebase-client';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -27,35 +27,42 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const handleUserUpsert = async (user: User) => {
-  console.log('🔄 handleUserUpsert 시작:', user.uid);
+// const handleUserUpsert = async (user: User) => {
+//   console.log('🔄 handleUserUpsert 시작:', user.uid);
   
-  try {
-    const serializableUser: SerializableUser = {
-      uid: user.uid,
-      email: user.email,
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-    };
+//   try {
+//     const serializableUser: SerializableUser = {
+//       uid: user.uid,
+//       email: user.email,
+//       displayName: user.displayName,
+//       photoURL: user.photoURL,
+//     };
     
-    console.log('📤 upsertUser 호출 전:', serializableUser);
+//     console.log('📤 upsertUser 호출 전:', serializableUser);
     
-    const { error } = await upsertUser(serializableUser);
+//     const { error } = await upsertUser(serializableUser);
     
-    console.log('📥 upsertUser 응답:', { error });
+//     console.log('📥 upsertUser 응답:', { error });
     
-    if (error) {
-      console.error('❌ upsertUser 에러:', error);
-      throw new Error(error);
-    }
+//     if (error) {
+//       console.error('❌ upsertUser 에러:', error);
+//       throw new Error(error);
+//     }
     
-    console.log('✅ handleUserUpsert 완료');
-  } catch (err: any) {
-    console.error('💥 handleUserUpsert 예외:', err);
-    throw err;
-  }
+//     console.log('✅ handleUserUpsert 완료');
+//   } catch (err: any) {
+//     console.error('💥 handleUserUpsert 예외:', err);
+//     throw err;
+//   }
+// };
+const handleUserUpsert = async (user: User) => {
+  await upsertUserClient({
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName,
+    photoURL: user.photoURL,
+  });
 };
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
