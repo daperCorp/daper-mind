@@ -123,61 +123,32 @@ export async function upsertUser(user: SerializableUser): Promise<{ error: strin
     console.log('👤 upsertUser 시작:', { uid: user.uid });
     
     const userRef = doc(db, 'users', user.uid);
-    const snap = await getDoc(userRef);
 
-    const base = {
-      uid: user.uid,
-      email: user.email ?? null,
-      displayName: user.displayName ?? null,
-      photoURL: user.photoURL ?? null,
-      lastLogin: serverTimestamp(),
-    };
-
-    if (!snap.exists()) {
-      // ✅ 새 사용자 -> 명확한 초기값 설정
-      console.log('🆕 새 사용자 생성');
-      await setDoc(
-        userRef,
-        {
-          ...base,
-          role: 'free',
-          ideaCount: 0,
-          apiRequestCount: 0,
-          lastApiRequestDate: null, // 명시적으로 null
-        },
-        { merge: true }
-      );
-      console.log('✅ 새 사용자 생성 완료');
-    } else {
-      // ✅ 기존 사용자 -> 기본값 보장하되 기존값 유지
-      const data = snap.data() as Partial<SerializableUser>;
-      console.log('🔄 기존 사용자 업데이트:', {
-        기존role: data.role,
-        기존ideaCount: data.ideaCount,
-        기존apiRequestCount: data.apiRequestCount
-      });
-      
-      await setDoc(
-        userRef,
-        {
-          ...base,
-          role: data.role ?? 'free',
-          ideaCount: data.ideaCount ?? 0,
-          apiRequestCount: data.apiRequestCount ?? 0,
-          lastApiRequestDate: data.lastApiRequestDate ?? null,
-        },
-        { merge: true }
-      );
-      console.log('✅ 기존 사용자 업데이트 완료');
-    }
-
+    // getDoc 제거 - merge: true로 기존 데이터 보존
+    await setDoc(
+      userRef,
+      {
+        uid: user.uid,
+        email: user.email ?? null,
+        displayName: user.displayName ?? null,
+        photoURL: user.photoURL ?? null,
+        lastLogin: serverTimestamp(),
+        // 기본값 - merge: true이므로 기존 값이 있으면 유지됨
+        role: 'free',
+        ideaCount: 0,
+        apiRequestCount: 0,
+        lastApiRequestDate: null,
+      },
+      { merge: true }
+    );
+    
+    console.log('✅ 사용자 저장 완료');
     return { error: null };
   } catch (err) {
     console.error('❌ upsertUser 오류:', err);
     return { error: 'Failed to save user data.' };
   }
 }
-
 /* =========================
  * Ideas: Create with limits
  * =======================*/
