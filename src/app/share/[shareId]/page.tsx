@@ -6,7 +6,108 @@ import { getIdeaByShareLink } from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Eye, AlertCircle, Share2 } from 'lucide-react';
+import { Eye, AlertCircle, Share2, ChevronRight, ChevronDown } from 'lucide-react';
+
+// 마인드맵 노드 컴포넌트
+function MindMapNode({ node, level = 0 }: { node: any; level?: number }) {
+  const [isExpanded, setIsExpanded] = useState(level < 2); // 2단계까지 기본 확장
+
+  if (!node) return null;
+
+  const hasChildren = node.children && Array.isArray(node.children) && node.children.length > 0;
+  const indentClass = level === 0 ? '' : `ml-${Math.min(level * 6, 12)}`;
+  const bgColor = level === 0 ? 'bg-blue-100 border-blue-300' : level === 1 ? 'bg-purple-50 border-purple-200' : 'bg-gray-50 border-gray-200';
+
+  return (
+    <div className={`${level > 0 ? 'ml-6' : ''} my-2`}>
+      <div
+        className={`flex items-start gap-2 p-3 rounded-lg border-2 ${bgColor} transition-all hover:shadow-sm`}
+      >
+        {hasChildren && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex-shrink-0 mt-0.5 hover:bg-white/50 rounded p-0.5 transition-colors"
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </button>
+        )}
+        {!hasChildren && <div className="w-5" />}
+        
+        <div className="flex-1">
+          <div className="font-medium text-sm">
+            {node.label || node.name || node.title || '노드'}
+          </div>
+          {node.description && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {node.description}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {hasChildren && isExpanded && (
+        <div className="mt-1 border-l-2 border-gray-300 pl-2">
+          {node.children.map((child: any, idx: number) => (
+            <MindMapNode key={idx} node={child} level={level + 1} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 마인드맵 렌더러
+function MindMapRenderer({ data }: { data: any }) {
+  const [parsedData, setParsedData] = useState<any>(null);
+  const [parseError, setParseError] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (typeof data === 'string') {
+        setParsedData(JSON.parse(data));
+      } else if (typeof data === 'object') {
+        setParsedData(data);
+      }
+    } catch (err) {
+      console.error('마인드맵 파싱 오류:', err);
+      setParseError(true);
+    }
+  }, [data]);
+
+  if (parseError) {
+    return (
+      <div className="text-sm text-muted-foreground p-4 bg-gray-50 rounded-lg">
+        <p className="mb-2 font-medium">원본 데이터:</p>
+        <pre className="whitespace-pre-wrap text-xs">
+          {typeof data === 'string' ? data : JSON.stringify(data, null, 2)}
+        </pre>
+      </div>
+    );
+  }
+
+  if (!parsedData) {
+    return <div className="text-sm text-muted-foreground">마인드맵 로딩 중...</div>;
+  }
+
+  // 루트 노드 찾기
+  const rootNode = parsedData.root || parsedData;
+
+  return (
+    <div className="space-y-2">
+      {Array.isArray(rootNode) ? (
+        rootNode.map((node, idx) => (
+          <MindMapNode key={idx} node={node} level={0} />
+        ))
+      ) : (
+        <MindMapNode node={rootNode} level={0} />
+      )}
+    </div>
+  );
+}
 
 export default function SharedIdeaPage({
   params: paramsPromise,
@@ -130,14 +231,15 @@ export default function SharedIdeaPage({
       {idea.mindMap && (
         <Card>
           <CardHeader>
-            <CardTitle>마인드맵</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <span>마인드맵</span>
+              <Badge variant="outline" className="text-xs">
+                인터랙티브
+              </Badge>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-muted-foreground">
-              {typeof idea.mindMap === 'string' 
-                ? idea.mindMap 
-                : JSON.stringify(idea.mindMap, null, 2)}
-            </pre>
+            <MindMapRenderer data={idea.mindMap} />
           </CardContent>
         </Card>
       )}
