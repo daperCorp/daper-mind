@@ -676,7 +676,6 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
         </div>
       ) : null}
 
-// 기존 idea/[id]/page.tsx의 AI 개선 제안 섹션 바로 다음에 추가
 
 {/* 사업계획서 섹션 - AI 개선 제안 다음에 추가 */}
 {userRole === 'paid' && (
