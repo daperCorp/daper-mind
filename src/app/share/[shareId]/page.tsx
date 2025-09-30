@@ -9,6 +9,45 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Eye, AlertCircle, Share2, ChevronRight, ChevronDown, Sparkles, FileText, TrendingUp } from 'lucide-react';
 import { OutlineDisplay } from '@/components/outline-display';
 
+// 상단에 유틸 추가
+const isNonEmpty = (v: any) => {
+  if (typeof v === 'string') return v.trim().length > 0;
+  if (v == null) return false;
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return Object.keys(v).length > 0;
+  return false;
+};
+
+// BusinessPlan 객체 → 보기용 마크다운
+const businessPlanToMarkdown = (bp: any) => {
+  if (!bp) return '';
+  if (typeof bp === 'string') return bp;
+
+  // Genkit 출력 스키마: { sections: [{id,title,content}], metadata: {...} }
+  if (bp.sections && Array.isArray(bp.sections)) {
+    const meta = bp.metadata || {};
+    const metaBlock = Object.keys(meta).length
+      ? [
+          '---',
+          `**Target Market:** ${meta.targetMarket ?? ''}`,
+          `**Business Model:** ${meta.businessModel ?? ''}`,
+          `**Funding Needed:** ${meta.fundingNeeded ?? ''}`,
+          `**Time To Market:** ${meta.timeToMarket ?? ''}`,
+          '---',
+        ].join('\n')
+      : '';
+
+    const body = bp.sections
+      .map((s: any) => `## ${s.title}\n\n${s.content}`)
+      .join('\n\n');
+
+    return [metaBlock, body].filter(Boolean).join('\n\n');
+  }
+
+  // 모르는 형태면 안전하게 JSON
+  try { return JSON.stringify(bp, null, 2); } catch { return String(bp); }
+};
+
 // 마인드맵 노드 컴포넌트
 function MindMapNode({ node, level = 0 }: { node: any; level?: number }) {
   const [isExpanded, setIsExpanded] = useState(level < 2);
@@ -174,10 +213,12 @@ export default function SharedIdeaPage({
   }
 
   // 프리미엄 콘텐츠 확인
-  const hasAiAnalysis = idea.aiAnalysis && idea.aiAnalysis.trim();
-  const hasBusinessPlan = idea.businessPlan && idea.businessPlan.trim();
+  // const hasAiAnalysis = idea.aiAnalysis && idea.aiAnalysis.trim();
+  // const hasBusinessPlan = idea.businessPlan && idea.businessPlan.trim();
+  // const hasPremiumContent = hasAiAnalysis || hasBusinessPlan;
+  const hasAiAnalysis = isNonEmpty(idea.aiAnalysis);
+  const hasBusinessPlan = isNonEmpty(idea.businessPlan);
   const hasPremiumContent = hasAiAnalysis || hasBusinessPlan;
-
   return (
     <div className="mx-auto max-w-4xl space-y-8 p-4 md:p-6">
       {/* 읽기 전용 배너 */}
@@ -258,22 +299,23 @@ export default function SharedIdeaPage({
 
       {/* 사업계획서 (프리미엄) */}
       {hasBusinessPlan && (
-        <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-blue-50/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-indigo-600" />
-              <span>사업계획서</span>
-              <Badge className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-xs">
-                <Sparkles className="h-3 w-3 mr-1" />
-                프리미엄
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <OutlineDisplay outline={idea.businessPlan} />
-          </CardContent>
-        </Card>
-      )}
+  <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-blue-50/50">
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <FileText className="h-5 w-5 text-indigo-600" />
+        <span>사업계획서</span>
+        <Badge className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-xs">
+          <Sparkles className="h-3 w-3 mr-1" />
+          프리미엄
+        </Badge>
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      <OutlineDisplay outline={businessPlanToMarkdown(idea.businessPlan)} />
+    </CardContent>
+  </Card>
+)}
+
 
       {/* 마인드맵 */}
       {idea.mindMap && (
