@@ -355,13 +355,9 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
                 </Button>
               </div>
             )}
-           <p className="text-muted-foreground text-sm whitespace-nowrap overflow-hidden text-ellipsis">
-  <span className="hidden xs:inline">{t('createdOn')}&nbsp;</span>
-  <time dateTime={idea.createdAt ? new Date(idea.createdAt).toISOString() : ''}>
-    {idea.createdAt ? formatYMD(idea.createdAt) : 'N/A'}
-  </time>
-</p>
-
+            <p className="text-muted-foreground">
+              {t('createdOn')} {idea.createdAt ? new Date(idea.createdAt).toLocaleDateString() : 'N/A'}
+            </p>
           </div>
         </div>
         
