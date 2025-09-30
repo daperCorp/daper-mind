@@ -652,6 +652,7 @@ import {
       if (!shareSnap.exists()) {
         return { data: null, error: 'Share link not found or expired' };
       }
+      
       const shareData = shareSnap.data() as any;
   
       if (!shareData.isActive) {
@@ -665,17 +666,32 @@ import {
         }
       }
   
-      const { data: idea, error } = await getIdeaById(shareData.ideaId);
-      if (error || !idea) {
-        return { data: null, error: error || 'Idea not found' };
+      // payload 확인
+      if (!shareData.payload) {
+        return { data: null, error: 'Share data is corrupted' };
       }
   
+      // 조회수 증가
       await updateDoc(shareRef, {
         accessCount: increment(1),
         lastAccessedAt: serverTimestamp(),
       });
   
-      return { data: { ...shareData.payload }, error: null };
+      // payload 데이터를 GeneratedIdea 형태로 변환하여 반환
+      const ideaData: GeneratedIdea = {
+        id: shareData.ideaId,
+        title: shareData.payload.title || '',
+        summary: shareData.payload.summary || '',
+        outline: shareData.payload.outline || '',
+        mindMap: shareData.payload.mindMap || null,
+        aiSuggestions: shareData.payload.aiAnalysis || null,
+        businessPlan: shareData.payload.businessPlan || null,
+        createdAt: shareData.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+        userId: shareData.ownerId,
+        language: 'Korean', // 기본값
+      };
+  
+      return { data: ideaData, error: null };
     } catch (error: any) {
       console.error('Error getting idea by share link:', error);
       return { data: null, error: 'Failed to access shared idea' };
