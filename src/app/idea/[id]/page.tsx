@@ -87,14 +87,7 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
   const t = (key: keyof typeof translations) => translations[key][language];
   const router = useRouter();
   const { user } = useAuth();
-  const formatYMD = (v: number | string | Date) => {
-    const d = new Date(v);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  };
-  
+
   useEffect(() => {
     const id = params.id;
     if (!id) return;
