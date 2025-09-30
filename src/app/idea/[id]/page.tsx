@@ -319,11 +319,19 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
     <div className="mx-auto max-w-4xl space-y-8 p-4 md:p-6">
       <div className="flex items-start justify-between gap-4">
         <div className='flex items-center gap-4 flex-1 min-w-0'>
-          <Button variant="outline" size="icon" asChild>
-            <Link href="/">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
+        <Button 
+  variant="outline" 
+  size="icon" 
+  onClick={() => {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/');
+    }
+  }}
+>
+  <ArrowLeft className="h-4 w-4" />
+</Button>
           <div className="flex-1 min-w-0">
             {isEditing.title ? (
               <div className="flex items-center gap-2">
