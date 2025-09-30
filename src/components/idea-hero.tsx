@@ -19,24 +19,83 @@ import { cn } from '@/lib/utils';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose,
 } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 // 🔹 requestId 생성 함수
 const generateRequestId = () => {
   return `req_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
 };
 
-function SubmitButton({ isPending }: { isPending: boolean }) {
+function LoadingSteps() {
+  const [currentStep, setCurrentStep] = useState(0);
   const t = useT();
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentStep((prev) => (prev + 1) % 3);
+    }, 1500);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const steps = [
+    { key: 'analyzing', label: t('analyzing') },
+    { key: 'structuring', label: t('structuring') },
+    { key: 'finalizing', label: t('finalizing') },
+  ];
+
+  const getStepColor = (index: number) => {
+    if (index === currentStep) {
+      if (index === 0) return { dot: 'bg-blue-600', text: 'text-blue-600', line: 'bg-blue-400' };
+      if (index === 1) return { dot: 'bg-purple-600', text: 'text-purple-600', line: 'bg-purple-400' };
+      return { dot: 'bg-green-600', text: 'text-green-600', line: 'bg-green-400' };
+    }
+    if (index < currentStep) {
+      if (index === 0) return { dot: 'bg-blue-400', text: 'text-blue-500', line: 'bg-blue-400' };
+      if (index === 1) return { dot: 'bg-purple-400', text: 'text-purple-500', line: 'bg-purple-400' };
+      return { dot: 'bg-green-400', text: 'text-green-500', line: 'bg-green-400' };
+    }
+    return { dot: 'bg-gray-300', text: 'text-gray-400', line: 'bg-gray-300' };
+  };
+
   return (
-    <Button
-      type="submit"
-      disabled={isPending}
-      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-4"
-      aria-label={isPending ? t('generating') : t('generateIdea')}
-    >
-      {isPending ? <LoaderCircle className="animate-spin w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
-      <span className="sr-only">{isPending ? t('generating') : t('generateIdea')}</span>
-    </Button>
+    <div className="flex items-center justify-center space-x-2 sm:space-x-4 text-xs">
+      {steps.map((step, index) => {
+        const colors = getStepColor(index);
+        const isActive = index === currentStep;
+        
+        return (
+          <div key={step.key} className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div 
+                className={cn(
+                  "w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all duration-300",
+                  colors.dot,
+                  isActive && "animate-pulse scale-125"
+                )}
+              />
+              <span 
+                className={cn(
+                  "transition-colors duration-300",
+                  colors.text,
+                  isActive && "font-medium"
+                )}
+              >
+                {step.label}
+              </span>
+            </div>
+            {index < steps.length - 1 && (
+              <div 
+                className={cn(
+                  "w-4 sm:w-8 h-px transition-colors duration-300",
+                  colors.line
+                )}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -50,7 +109,6 @@ export default function IdeaHero() {
   const [idea, setIdea] = useState('');
   const [pending, setPending] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  // 🔹 중복 저장 방지용 refs
   const requestIdRef = useRef<string>(generateRequestId());
   const requestIdInputRef = useRef<HTMLInputElement>(null);
   const lastProcessedRequestRef = useRef<string | null>(null);
@@ -63,13 +121,11 @@ export default function IdeaHero() {
   const t = useT();
   const router = useRouter();
 
-  // 👇 사용량 표시용 상태
   const [usageLoading, setUsageLoading] = useState(false);
   const [role, setRole] = useState<'free' | 'paid' | null>(null);
   const [dailyLeft, setDailyLeft] = useState<number | null>(null);
   const [ideasLeft, setIdeasLeft] = useState<number | null>(null);
 
-  // 로그인 상태 변화 시 사용량 불러오기
   const uid = user?.uid ?? null;
   const loadingUsageRef = useRef(false);
 
@@ -101,13 +157,13 @@ export default function IdeaHero() {
   }, [uid]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // 기본 동작 방지
+    
     if (!user) {
-      e.preventDefault();
       router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
     
-    // 🔹 폼 제출 시마다 새로운 requestId 생성
     requestIdRef.current = generateRequestId();
     if (requestIdInputRef.current) {
       requestIdInputRef.current.value = requestIdRef.current;
@@ -115,17 +171,24 @@ export default function IdeaHero() {
   
     setPending(true);
     
-    console.log('Form submitted with requestId:', requestIdRef.current);
+    // FormData를 직접 생성하여 formAction 호출
+    const formData = new FormData(e.currentTarget);
+    formAction(formData);
   };
 
-  // 🔹 결과 처리 useEffect - 중복 저장 방지 강화
+  // Enter 키 처리 (줄바꿈 방지)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      formRef.current?.requestSubmit();
+    }
+  };
+
   useEffect(() => {
-    // 1. pending 해제
     if (pending && (state.error || state.data)) {
       setPending(false);
     }
 
-    // 2. 에러 처리
     if (state.error) {
       console.error('Generation error:', state.error);
       toast({ 
@@ -138,18 +201,14 @@ export default function IdeaHero() {
       return;
     }
 
-    // 3. 저장 로직 - 중복 방지 강화
     const processResult = async () => {
-      // ✅ 필수 조건 체크
       if (!state.data || state.data.id || !user?.uid) return;
       
-      // ✅ 이미 처리 중이면 스킵
       if (isSavingRef.current) {
         console.log('⏭️ 이미 저장 중, 스킵');
         return;
       }
       
-      // ✅ 같은 requestId 중복 처리 방지
       const currentRequestId = requestIdRef.current;
       if (lastProcessedRequestRef.current === currentRequestId) {
         console.log('⏭️ 이미 처리된 요청, 스킵:', currentRequestId);
@@ -157,18 +216,15 @@ export default function IdeaHero() {
       }
 
       try {
-        // 저장 시작
         isSavingRef.current = true;
         lastProcessedRequestRef.current = currentRequestId;
         
         console.log('💾 Firestore에 저장 시작...', currentRequestId);
 
-        // 1. 사용량 증가 (무료 사용자만)
         if (role === 'free') {
           await incrementUserApiUsage(user.uid);
         }
 
-        // 2. 아이디어 저장
         const { id: savedId, error: saveError } = await saveGeneratedIdea(
           user.uid,
           {
@@ -186,7 +242,6 @@ export default function IdeaHero() {
 
         console.log('✅ 저장 완료:', savedId);
 
-        // 3. UI 업데이트 (한 번만)
         if (lastShownIdRef.current !== savedId) {
           lastShownIdRef.current = savedId;
           setResult({ ...state.data, id: savedId });
@@ -195,7 +250,6 @@ export default function IdeaHero() {
           setOpen(true);
           requestIdRef.current = generateRequestId();
 
-          // 로컬 사용량 업데이트
           if (role === 'free') {
             setDailyLeft(prev => (typeof prev === 'number' ? Math.max(0, prev - 1) : prev));
             setIdeasLeft(prev => (typeof prev === 'number' ? Math.max(0, prev - 1) : prev));
@@ -203,10 +257,7 @@ export default function IdeaHero() {
         }
       } catch (error: any) {
         console.error('❌ 저장 실패:', error);
-        
-        // 실패 시 다시 시도할 수 있도록 초기화
         lastProcessedRequestRef.current = null;
-        
         toast({
           variant: 'destructive',
           title: t('error'),
@@ -220,7 +271,6 @@ export default function IdeaHero() {
     processResult();
   }, [state.data, state.error, pending]);
 
-  // 다이얼로그 닫기 핸들러
   const handleDialogClose = (isOpen: boolean) => {
     setOpen(isOpen);
     if (!isOpen) {
@@ -228,13 +278,12 @@ export default function IdeaHero() {
     }
   };
 
-  // 인디케이터 UI
   const QuotaBadge = ({ label, value, max }: { label: string; value: number | null; max?: number }) => {
     if (value === null) {
       return (
-        <div className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 border border-emerald-200/60 px-3 py-1.5 text-sm font-medium shadow-sm backdrop-blur-sm">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span>{label}: <span className="font-semibold text-emerald-600">∞</span></span>
+        <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 border border-emerald-200/60 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium shadow-sm">
+          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+          <span className="whitespace-nowrap">{label}: <span className="font-semibold">∞</span></span>
         </div>
       );
     }
@@ -277,12 +326,12 @@ export default function IdeaHero() {
     const styles = getStyles();
     
     return (
-      <div className={`inline-flex items-center gap-2.5 rounded-lg ${styles.bg} ${styles.text} border ${styles.border} px-3 py-1.5 text-sm font-medium shadow-sm backdrop-blur-sm transition-all duration-200 hover:shadow-md`}>
-        <div className={`w-2 h-2 rounded-full ${styles.dot} ${left > 0 ? 'animate-pulse' : ''}`}></div>
-        <div className="flex items-center gap-2">
-          <span>{label}: <span className="font-semibold">{text}</span></span>
+      <div className={`inline-flex items-center gap-1.5 sm:gap-2.5 rounded-lg ${styles.bg} ${styles.text} border ${styles.border} px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium shadow-sm transition-all duration-200`}>
+        <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${styles.dot} ${left > 0 ? 'animate-pulse' : ''}`}></div>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <span className="whitespace-nowrap">{label}: <span className="font-semibold">{text}</span></span>
           {max && (
-            <div className="flex items-center gap-1.5">
+            <div className="hidden sm:flex items-center gap-1.5">
               <div className={`w-8 h-1.5 rounded-full ${styles.progress} overflow-hidden`}>
                 <div 
                   className={`h-full ${styles.progressBar} rounded-full transition-all duration-300 ease-out`}
@@ -298,13 +347,13 @@ export default function IdeaHero() {
 
   return (
     <>
-      <div className="mx-auto max-w-4xl">
-        {/* 인디케이터 영역 */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex flex-wrap items-center gap-3">
+      <div className="mx-auto max-w-4xl px-4 sm:px-0">
+        {/* 인디케이터 영역 - 모바일 최적화 */}
+        <div className="mb-4 sm:mb-6">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {usageLoading ? (
-              <div className="inline-flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-200/60 px-3 py-1.5 text-sm text-gray-600 animate-pulse">
-                <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-lg bg-gray-50 border border-gray-200/60 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-600 animate-pulse">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gray-400"></div>
                 <span>{t('loadingUsage')}</span>
               </div>
             ) : role ? (
@@ -312,27 +361,27 @@ export default function IdeaHero() {
                 <QuotaBadge label={t('dailyLeft')} value={dailyLeft} max={2} />
                 <QuotaBadge label={t('ideasLeft')} value={ideasLeft} max={5} />
                 
-                <div className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium shadow-sm backdrop-blur-sm transition-all duration-200 ${
+                <div className={`inline-flex items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium shadow-sm transition-all duration-200 ${
                   role === 'paid' 
-                    ? 'bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border border-purple-200/60 hover:shadow-md' 
+                    ? 'bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border border-purple-200/60' 
                     : 'bg-gradient-to-r from-slate-50 to-gray-50 text-slate-700 border border-slate-200/60'
                 }`}>
-                  <div className={`w-2 h-2 rounded-full ${role === 'paid' ? 'bg-purple-500' : 'bg-slate-400'}`}></div>
-                  <span>
+                  <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${role === 'paid' ? 'bg-purple-500' : 'bg-slate-400'}`}></div>
+                  <span className="whitespace-nowrap">
                     {t('plan')}: <span className="font-semibold">{role === 'paid' ? t('paid') : t('free')}</span>
                   </span>
                 </div>
               </>
             ) : (
-              <div className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-700 border border-indigo-200/60 px-3 py-1.5 text-sm font-medium shadow-sm">
-                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
-                <span>{t('signInToTrackUsage')}</span>
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-lg bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-700 border border-indigo-200/60 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium shadow-sm">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+                <span className="whitespace-nowrap">{t('signInToTrackUsage')}</span>
               </div>
             )}
           </div>
           
           {role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)) && (
-            <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
               <span>{t('needMore')}</span>
               <button 
                 onClick={() => router.push('/upgrade')}
@@ -344,155 +393,143 @@ export default function IdeaHero() {
           )}
         </div>
   
-        {/* 입력 폼 */}
-        <div className="mb-8">
-          <div className="relative group">
-            <form ref={formRef} action={formAction} onSubmit={handleSubmit} className="relative" aria-busy={pending}>
-              <div className="relative">
-                <input
-                  id="idea"
-                  name="idea"
-                  type="text"
-                  placeholder={t('describeYourIdea')}
-                  autoComplete="off"
-                  required
-                  value={idea}
-                  onChange={(e) => setIdea(e.target.value)}
-                  disabled={pending || (role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)))}
-                  className={cn(
-                    "w-full px-6 py-5 pr-20 border rounded-2xl shadow-lg text-lg transition-all duration-200",
-                    "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
-                    "group-hover:shadow-xl",
-                    pending ? "bg-gray-50 cursor-not-allowed" : "bg-white",
-                    (role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0))) 
-                      ? "border-red-200 bg-red-50/30" 
-                      : "border-gray-300"
-                  )}
-                />
-                
-                <input type="hidden" name="userId" value={user?.uid ?? ''} />
-                <input type="hidden" name="language" value={language} />
-                <input type="hidden" name="requestId" ref={requestIdInputRef} defaultValue={requestIdRef.current} />
-                
-                <Button
-                  type="submit"
-                  disabled={pending || !idea.trim() || (role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)))}
-                  className={cn(
-                    "absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-6 py-2.5",
-                    "transition-all duration-200 shadow-md hover:shadow-lg",
-                    "disabled:opacity-50 disabled:cursor-not-allowed"
-                  )}
-                  aria-label={pending ? t('generating') : t('generateIdea')}
-                >
-                  {pending ? (
-                    <div className="flex items-center gap-2">
-                      <LoaderCircle className="animate-spin w-5 h-5" />
-                      <span className="hidden sm:inline">{t('generating')}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-5 h-5" />
-                      <span className="hidden sm:inline">{t('generate')}</span>
-                    </div>
-                  )}
-                </Button>
-              </div>
-            </form>
-            
-            {role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)) && (
-              <div className="mt-3 p-4 rounded-lg bg-red-50 border border-red-200">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-red-800">
-                      {dailyLeft === 0 && ideasLeft !== null && ideasLeft === 0
-                        ? t('reachedDailyAndTotalLimits')
-                        : dailyLeft === 0 
-                        ? t('reachedDailyLimit')
-                        : t('reachedTotalLimit')}
-                    </p>
-                    <p className="text-sm text-red-600 mt-1">
-                      {dailyLeft === 0 && (ideasLeft !== null && ideasLeft > 0)
-                        ? t('comeBackTomorrow')
-                        : t('upgradeForUnlimited')}
-                    </p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2 border-red-300 text-red-700 hover:bg-red-100"
-                      onClick={() => router.push('/upgrade')}
-                    >
-                      {t('upgradeNow')}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div className="mt-4 text-center">
-              <p className="text-sm text-muted-foreground">
-                {user ? (
-                  t('tryExamples')
-                ) : (
-                  <>
-                    {t('signInPrompt')} <button 
-                      onClick={() => router.push('/login')}
-                      className="text-blue-600 hover:text-blue-800 underline decoration-dotted underline-offset-2"
-                    >
-                      {t('signIn')}
-                    </button> {t('signInToStart')}
-                  </>
-                )}
-              </p>
+       {/* 입력 폼 - 버튼 분리 */}
+<div className="mb-6 sm:mb-8">
+  <div className="relative group">
+    <form ref={formRef} onSubmit={handleSubmit} className="relative">
+      <div className="space-y-3">
+        <Textarea
+          id="idea"
+          name="idea"
+          placeholder={t('describeYourIdea')}
+          required
+          value={idea}
+          onChange={(e) => setIdea(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={pending || (role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)))}
+          className={cn(
+            "w-full px-4 sm:px-6 py-4 sm:py-5 border rounded-2xl shadow-lg text-base sm:text-lg transition-all duration-200 resize-none min-h-[80px] sm:min-h-[100px]",
+            "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+            "group-hover:shadow-xl",
+            pending ? "bg-gray-50 cursor-not-allowed" : "bg-white",
+            (role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0))) 
+              ? "border-red-200 bg-red-50/30" 
+              : "border-gray-300"
+          )}
+          rows={3}
+        />
+        
+        <input type="hidden" name="userId" value={user?.uid ?? ''} />
+        <input type="hidden" name="language" value={language} />
+        <input type="hidden" name="requestId" ref={requestIdInputRef} defaultValue={requestIdRef.current} />
+        
+        <Button
+          type="submit"
+          disabled={pending || !idea.trim() || (role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)))}
+          className={cn(
+            "w-full rounded-xl h-12 sm:h-14 text-base sm:text-lg font-semibold",
+            "transition-all duration-200 shadow-lg hover:shadow-xl",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+          )}
+        >
+          {pending ? (
+            <div className="flex items-center gap-2">
+              <LoaderCircle className="animate-spin w-5 h-5" />
+              <span>{t('generating')}</span>
             </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5" />
+              <span>{t('generateIdea')}</span>
+            </div>
+          )}
+        </Button>
+      </div>
+    </form>
+    
+    {role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)) && (
+      <div className="mt-3 p-3 sm:p-4 rounded-lg bg-red-50 border border-red-200">
+        <div className="flex items-start gap-2 sm:gap-3">
+          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0"></div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs sm:text-sm font-medium text-red-800">
+              {dailyLeft === 0 && ideasLeft !== null && ideasLeft === 0
+                ? t('reachedDailyAndTotalLimits')
+                : dailyLeft === 0 
+                ? t('reachedDailyLimit')
+                : t('reachedTotalLimit')}
+            </p>
+            <p className="text-xs sm:text-sm text-red-600 mt-1">
+              {dailyLeft === 0 && (ideasLeft !== null && ideasLeft > 0)
+                ? t('comeBackTomorrow')
+                : t('upgradeForUnlimited')}
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2 border-red-300 text-red-700 hover:bg-red-100 text-xs sm:text-sm h-8"
+              onClick={() => router.push('/upgrade')}
+            >
+              {t('upgradeNow')}
+            </Button>
           </div>
         </div>
       </div>
+    )}
+    
+    <div className="mt-3 sm:mt-4 text-center">
+      <p className="text-xs sm:text-sm text-muted-foreground">
+        {user ? (
+          <>
+            {t('tryExamples')} 
+            <span className="hidden sm:inline"> · Enter키로 생성, Shift+Enter로 줄바꿈</span>
+          </>
+        ) : (
+          <>
+            {t('signInPrompt')} <button 
+              onClick={() => router.push('/login')}
+              className="text-blue-600 hover:text-blue-800 underline decoration-dotted underline-offset-2"
+            >
+              {t('signIn')}
+            </button> {t('signInToStart')}
+          </>
+        )}
+      </p>
+    </div>
+  </div>
+</div>
+      </div>
   
-      {/* 로딩 오버레이 */}
-      {pending && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md">
-          <div className="absolute inset-0 z-0 opacity-5 bg-gradient-to-br from-blue-50 to-purple-50"></div>
+      {/* 로딩 오버레이 - 단계별 애니메이션 추가 */}
+{pending && (
+  <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md px-4">
+    <div className="absolute inset-0 z-0 opacity-5 bg-gradient-to-br from-blue-50 to-purple-50"></div>
 
-          <div className="relative z-10 w-24 h-24 mb-6">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 opacity-20 animate-pulse"></div>
-            <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-30 animate-spin"></div>
-            <div className="absolute inset-4 rounded-full bg-white flex items-center justify-center">
-              <Sparkles className="h-8 w-8 text-blue-600 animate-pulse" />
-            </div>
-          </div>
+    <div className="relative z-10 w-20 h-20 sm:w-24 sm:h-24 mb-4 sm:mb-6">
+      <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 opacity-20 animate-pulse"></div>
+      <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 opacity-30 animate-spin"></div>
+      <div className="absolute inset-4 rounded-full bg-white flex items-center justify-center">
+        <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 animate-pulse" />
+      </div>
+    </div>
 
-          <div className="relative z-10 text-center space-y-4">
-            <div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">
-                {t('generatingYourIdea')}
-              </h3>
-              <p className="text-sm text-gray-600 max-w-md">
-                {t('aiCraftingDetails')}
-              </p>
-            </div>
+    <div className="relative z-10 text-center space-y-3 sm:space-y-4 max-w-md">
+      <div>
+        <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 sm:mb-2">
+          {t('generatingYourIdea')}
+        </h3>
+        <p className="text-xs sm:text-sm text-gray-600">
+          {t('aiCraftingDetails')}
+        </p>
+      </div>
 
-            <div className="flex items-center justify-center space-x-4 text-xs">
-              <div className="flex items-center gap-2 text-blue-600">
-                <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
-                <span>{t('analyzing')}</span>
-              </div>
-              <div className="w-8 h-px bg-gray-300"></div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-                <span>{t('structuring')}</span>
-              </div>
-              <div className="w-8 h-px bg-gray-300"></div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-                <span>{t('finalizing')}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <LoadingSteps />
+    </div>
+  </div>
+)}
 
-      {/* 결과 다이얼로그 */}
+      {/* 결과 다이얼로그 - 기존 코드 유지 */}
       <Dialog open={open} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-4xl lg:max-w-5xl w-[95vw] h-[95vh] sm:h-[90vh] p-0 gap-0 flex flex-col">
           <DialogHeader className="flex-shrink-0 space-y-3 p-4 sm:p-6 pb-4 border-b">
@@ -589,46 +626,43 @@ export default function IdeaHero() {
           </div>
 
           <DialogFooter className="flex-shrink-0 border-t p-4 sm:p-6 pt-3 sm:pt-4 gap-2 sm:gap-3 bg-white">
-            <div className="flex flex-col gap-3 w-full">
+            <div className="flex flex-col gap-2 sm:gap-3 w-full">
               <div className="flex gap-2 w-full">
                 <Button
                   onClick={() => {
                     handleDialogClose(false);
                     router.push(`/idea/${result?.id}`);
                   }}
-                  className="flex-1 h-11 text-sm sm:text-base"
+                  className="flex-1 h-10 sm:h-11 text-sm sm:text-base"
                   disabled={!result?.id}
                 >
                   {t('viewDetails')}
                 </Button>
-                
                 <Button
                   variant="outline"
                   onClick={() => {
                     handleDialogClose(false);
                     router.push('/archive');
                   }}
-                  className="flex-1 h-11 text-sm sm:text-base"
+                  className="flex-1 h-10 sm:h-11 text-sm sm:text-base"
                 >
                   {t('goToArchive')}
                 </Button>
               </div>
               
-              <div className="flex gap-2 w-full">
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    handleDialogClose(false);
-                    setTimeout(() => {
-                      const input = document.getElementById('idea') as HTMLInputElement;
-                      input?.focus();
-                    }, 100);
-                  }}
-                  className="flex-1 h-10 text-sm"
-                >
-                  {t('generateAnother')}
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  handleDialogClose(false);
+                  setTimeout(() => {
+                    const input = document.getElementById('idea') as HTMLTextAreaElement;
+                    input?.focus();
+                  }, 100);
+                }}
+                className="w-full h-9 sm:h-10 text-xs sm:text-sm"
+              >
+                {t('generateAnother')}
+              </Button>
             </div>
           </DialogFooter>
         </DialogContent>
