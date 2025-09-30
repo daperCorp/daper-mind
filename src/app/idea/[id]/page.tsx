@@ -87,7 +87,14 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
   const t = (key: keyof typeof translations) => translations[key][language];
   const router = useRouter();
   const { user } = useAuth();
-
+  const formatYMD = (v: number | string | Date) => {
+    const d = new Date(v);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+  
   useEffect(() => {
     const id = params.id;
     if (!id) return;
@@ -355,9 +362,13 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
                 </Button>
               </div>
             )}
-            <p className="text-muted-foreground">
-              {t('createdOn')} {idea.createdAt ? new Date(idea.createdAt).toLocaleDateString() : 'N/A'}
-            </p>
+           <p className="text-muted-foreground text-sm whitespace-nowrap overflow-hidden text-ellipsis">
+  <span className="hidden xs:inline">{t('createdOn')}&nbsp;</span>
+  <time dateTime={idea.createdAt ? new Date(idea.createdAt).toISOString() : ''}>
+    {idea.createdAt ? formatYMD(idea.createdAt) : 'N/A'}
+  </time>
+</p>
+
           </div>
         </div>
         
