@@ -1,17 +1,15 @@
-
 'use client';
 
 import type { MindMapNode as MindMapNodeType } from '@/ai/flows/generate-idea-mindmap';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Plus, LoaderCircle, MoreVertical, BrainCircuit, Edit, Trash2 } from 'lucide-react';
+import { Plus, LoaderCircle, MoreVertical, BrainCircuit, Edit, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState, forwardRef } from 'react';
+import { useState, forwardRef, useEffect } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-// Use a more specific name to avoid conflict with the component name
 type NodeData = MindMapNodeType & { children?: NodeData[] };
 
 interface MindMapDisplayProps {
@@ -21,6 +19,8 @@ interface MindMapDisplayProps {
   onEditNode: (mode: 'add' | 'edit', nodePath: string, defaultValue?: string) => void;
   onDeleteNode: (nodePath: string) => void;
   isProcessing: boolean;
+  expandAll?: boolean | null;
+  searchQuery?: string;
 }
 
 interface MindMapNodeProps {
@@ -33,6 +33,8 @@ interface MindMapNodeProps {
   onEditNode: (mode: 'add' | 'edit', nodePath: string, defaultValue?: string) => void;
   onDeleteNode: (nodePath: string) => void;
   isProcessing: boolean;
+  expandAll?: boolean | null;
+  searchQuery?: string;
 }
 
 const levelColors = [
@@ -49,17 +51,35 @@ const connectorColors = [
   'border-muted-foreground/20',
 ];
 
-// ...생략 (imports 동일)
-
 function MindMapNode({
   node, level, path, isLast,
   onExpandNode, onAddNode, onEditNode, onDeleteNode,
-  isProcessing
+  isProcessing, expandAll, searchQuery
 }: MindMapNodeProps) {
   const [processingNode, setProcessingNode] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(level < 2);
   const hasChildren = node.children && node.children.length > 0;
   const cardColor = levelColors[level] || levelColors[levelColors.length - 1];
   const isMobile = useIsMobile();
+
+  // 검색어 매칭
+  const isMatched = searchQuery && searchQuery.trim() 
+    ? node.title.toLowerCase().includes(searchQuery.toLowerCase())
+    : false;
+
+  // expandAll prop 변경 시 자동으로 펼침/접기
+  useEffect(() => {
+    if (expandAll !== null && expandAll !== undefined) {
+      setIsExpanded(expandAll);
+    }
+  }, [expandAll]);
+
+  // 검색어 매칭 시 자동 펼침
+  useEffect(() => {
+    if (isMatched || (searchQuery && hasChildren)) {
+      setIsExpanded(true);
+    }
+  }, [searchQuery, isMatched, hasChildren]);
 
   const handleExpandClick = () => {
     setProcessingNode(path);
@@ -68,19 +88,23 @@ function MindMapNode({
     });
   };
 
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded);
+  };
+
   const isCurrentlyProcessing = isProcessing && processingNode === path;
   const isRootNode = level === 0;
 
   return (
     <motion.div
-      className="relative flex items-start"
+      className="relative flex items-start mind-map-node"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -10 }}
       transition={{ duration: 0.3 }}
     >
       {/* 세로 커넥터 */}
-      {hasChildren && (
+      {hasChildren && isExpanded && (
         <div className="absolute left-[10px] top-[52px] w-px h-[calc(100%_-_52px)] bg-border" />
       )}
 
@@ -94,16 +118,43 @@ function MindMapNode({
       </div>
 
       <div className="flex-1 space-y-3 py-2">
-        <Card className={cn("inline-block transition-opacity", cardColor, isCurrentlyProcessing && "opacity-70 pointer-events-none")}>
+        <Card className={cn(
+          "inline-block transition-all", 
+          cardColor, 
+          isCurrentlyProcessing && "opacity-70 pointer-events-none",
+          isMatched && "ring-2 ring-yellow-400 shadow-lg"
+        )}>
           <CardContent className="p-3 pr-2 flex items-center gap-2">
-            <p className="font-medium">{node.title}</p>
+            {/* 펼침/접기 버튼 */}
+            {hasChildren && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 rounded-full flex-shrink-0"
+                onClick={toggleExpand}
+                disabled={isCurrentlyProcessing}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+
+            <p className={cn(
+              "font-medium flex-1",
+              isMatched && "text-yellow-700 font-semibold"
+            )}>
+              {node.title}
+            </p>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-6 w-6 rounded-full"
+                  className="h-6 w-6 rounded-full flex-shrink-0"
                   disabled={isCurrentlyProcessing}
                 >
                   {isCurrentlyProcessing
@@ -151,7 +202,7 @@ function MindMapNode({
         )}
 
         {/* 자식들 */}
-        {hasChildren && (
+        {hasChildren && isExpanded && (
           <div className={cn("space-y-3 border-l border-dashed", isMobile ? "pl-2 ml-1.5" : "pl-4 ml-2.5")}>
             <AnimatePresence>
               {node.children!.map((child, index) => (
@@ -166,6 +217,8 @@ function MindMapNode({
                   onEditNode={onEditNode}
                   onDeleteNode={onDeleteNode}
                   isProcessing={isProcessing}
+                  expandAll={expandAll}
+                  searchQuery={searchQuery}
                 />
               ))}
             </AnimatePresence>
@@ -176,29 +229,31 @@ function MindMapNode({
   );
 }
 
-
 export const MindMapDisplay = forwardRef<HTMLDivElement, MindMapDisplayProps>(
-    ({ mindMap, onExpandNode, onAddNode, onEditNode, onDeleteNode, isProcessing }, ref) => {
+  ({ mindMap, onExpandNode, onAddNode, onEditNode, onDeleteNode, isProcessing, expandAll, searchQuery }, ref) => {
     if (!mindMap) {
-        return <p className="text-muted-foreground">No mind map generated.</p>;
+      return <p className="text-muted-foreground">No mind map generated.</p>;
     }
 
     return (
-        <div ref={ref} className="overflow-x-auto">
-            <div className="space-y-2 inline-block">
-                <MindMapNode 
-                    node={mindMap}
-                    level={0}
-                    path={mindMap.title}
-                    isLast={true}
-                    onExpandNode={onExpandNode}
-                    onAddNode={onAddNode}
-                    onEditNode={onEditNode}
-                    onDeleteNode={onDeleteNode}
-                    isProcessing={isProcessing}
-                />
-            </div>
+      <div ref={ref} className="overflow-x-auto">
+        <div className="space-y-2 inline-block">
+          <MindMapNode 
+            node={mindMap}
+            level={0}
+            path={mindMap.title}
+            isLast={true}
+            onExpandNode={onExpandNode}
+            onAddNode={onAddNode}
+            onEditNode={onEditNode}
+            onDeleteNode={onDeleteNode}
+            isProcessing={isProcessing}
+            expandAll={expandAll}
+            searchQuery={searchQuery}
+          />
         </div>
+      </div>
     );
-});
+  }
+);
 MindMapDisplay.displayName = 'MindMapDisplay';
