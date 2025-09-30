@@ -552,6 +552,7 @@ import {
       const ownerId = user.uid
   
       const shareId = nanoid(12)
+      console.log('✅ Generated shareId:', shareId);
       const now = new Date()
       const expiresAt =
         expiresInDays ? new Date(now.getTime() + expiresInDays * 24 * 60 * 60 * 1000) : undefined
@@ -576,6 +577,7 @@ import {
         aiAnalysis: ideaData.aiSuggestions ?? '',   // 너가 쓰는 필드명에 맞춰 조정
         businessPlan: ideaData.businessPlan ?? ''
       };
+      console.log('💾 Saving shareLink to Firestore...');
       const shareRef = doc(db, 'shareLinks', shareId)
       await setDoc(shareRef, {
         ...shareLink,
@@ -583,7 +585,7 @@ import {
         expiresAt: expiresAt ? Timestamp.fromDate(expiresAt) : null,
         payload,
       })
-  
+      console.log('✅ ShareLink saved successfully');
       return { data: shareLink, error: null }
     } catch (error: any) {
       console.error('Error creating share link:', error)
@@ -642,19 +644,20 @@ import {
     error: string | null 
   }> {
     try {
+      console.log('🔍 Fetching shareLink:', shareId);
       if (!shareId) {
         return { data: null, error: 'Share ID is required' };
       }
   
       const shareRef = doc(db, 'shareLinks', shareId);
       const shareSnap = await getDoc(shareRef);
-  
+      console.log('📦 ShareLink exists:', shareSnap.exists());
       if (!shareSnap.exists()) {
         return { data: null, error: 'Share link not found or expired' };
       }
       
       const shareData = shareSnap.data() as any;
-  
+      console.log('📄 ShareLink data:', shareData); 
       if (!shareData.isActive) {
         return { data: null, error: 'This share link has been disabled' };
       }
@@ -668,6 +671,7 @@ import {
   
       // payload 확인
       if (!shareData.payload) {
+        console.error('❌ No payload found');
         return { data: null, error: 'Share data is corrupted' };
       }
   
@@ -690,7 +694,7 @@ import {
         userId: shareData.ownerId,
         language: 'Korean', // 기본값
       };
-  
+      console.log('✅ Returning idea data');
       return { data: ideaData, error: null };
     } catch (error: any) {
       console.error('Error getting idea by share link:', error);

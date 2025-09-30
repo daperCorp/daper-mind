@@ -32,19 +32,13 @@ export default function FavoritesRoutePage() {
     <main className="container max-w-5xl mx-auto p-4 pt-20">
       {/* 🔙 헤더 영역 */}
       <div className="flex items-center gap-4 mb-6">
-      <Button 
-  variant="outline" 
-  size="icon" 
-  onClick={() => {
-    if (window.history.length > 1) {
-      router.back();
-    } else {
-      router.push('/');
-    }
-  }}
->
-  <ArrowLeft className="h-4 w-4" />
-</Button>
+         <Button 
+         variant="outline" 
+         size="icon" 
+         onClick={() => router.back()}
+       >
+         <ArrowLeft className="h-4 w-4" />
+       </Button>
         <h1 className="text-2xl font-bold">{t('favorites')}</h1>
       </div>
 

@@ -322,13 +322,7 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
         <Button 
   variant="outline" 
   size="icon" 
-  onClick={() => {
-    if (window.history.length > 1) {
-      router.back();
-    } else {
-      router.push('/');
-    }
-  }}
+  onClick={() => router.back()}
 >
   <ArrowLeft className="h-4 w-4" />
 </Button>

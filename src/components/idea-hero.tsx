@@ -1,7 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useActionState, useEffect, useRef, useState, useTransition } from 'react';
 import { LoaderCircle, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -100,6 +99,7 @@ function LoadingSteps() {
 }
 
 export default function IdeaHero() {
+  const [isPending, startTransition] = useTransition();
   const [state, formAction] = useActionState(generateIdea, {
     data: null as GeneratedIdea | null,
     error: null as string | null,
@@ -107,7 +107,7 @@ export default function IdeaHero() {
   const [result, setResult] = useState<GeneratedIdea | null>(null);
   const [open, setOpen] = useState(false);
   const [idea, setIdea] = useState('');
-  const [pending, setPending] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const requestIdRef = useRef<string>(generateRequestId());
   const requestIdInputRef = useRef<HTMLInputElement>(null);
@@ -157,7 +157,7 @@ export default function IdeaHero() {
   }, [uid]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // 기본 동작 방지
+    e.preventDefault();
     
     if (!user) {
       router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
@@ -169,11 +169,14 @@ export default function IdeaHero() {
       requestIdInputRef.current.value = requestIdRef.current;
     }
   
-    setPending(true);
+    // 로딩 상태 시작
+    setIsGenerating(true);
     
-    // FormData를 직접 생성하여 formAction 호출
-    const formData = new FormData(e.currentTarget);
-    formAction(formData);
+    // startTransition을 사용하여 formAction 호출
+    startTransition(() => {
+      const formData = new FormData(e.currentTarget);
+      formAction(formData);
+    });
   };
 
   // Enter 키 처리 (줄바꿈 방지)
@@ -184,9 +187,10 @@ export default function IdeaHero() {
     }
   };
 
+  // state 변경 감지하여 로딩 상태 해제
   useEffect(() => {
-    if (pending && (state.error || state.data)) {
-      setPending(false);
+    if (state.error || state.data) {
+      setIsGenerating(false);
     }
 
     if (state.error) {
@@ -265,11 +269,12 @@ export default function IdeaHero() {
         });
       } finally {
         isSavingRef.current = false;
+        setIsGenerating(false);
       }
     };
 
     processResult();
-  }, [state.data, state.error, pending]);
+  }, [state.data, state.error]);
 
   const handleDialogClose = (isOpen: boolean) => {
     setOpen(isOpen);
@@ -277,6 +282,9 @@ export default function IdeaHero() {
       setResult(null);
     }
   };
+
+  // 실제 로딩 상태는 isGenerating 또는 isPending 중 하나라도 true일 때
+  const showLoading = isGenerating || isPending;
 
   const QuotaBadge = ({ label, value, max }: { label: string; value: number | null; max?: number }) => {
     if (value === null) {
@@ -406,12 +414,12 @@ export default function IdeaHero() {
           value={idea}
           onChange={(e) => setIdea(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={pending || (role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)))}
+          disabled={showLoading || (role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)))}
           className={cn(
             "w-full px-4 sm:px-6 py-4 sm:py-5 border rounded-2xl shadow-lg text-base sm:text-lg transition-all duration-200 resize-none min-h-[80px] sm:min-h-[100px]",
             "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
             "group-hover:shadow-xl",
-            pending ? "bg-gray-50 cursor-not-allowed" : "bg-white",
+            showLoading ? "bg-gray-50 cursor-not-allowed" : "bg-white",
             (role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0))) 
               ? "border-red-200 bg-red-50/30" 
               : "border-gray-300"
@@ -425,7 +433,7 @@ export default function IdeaHero() {
         
         <Button
           type="submit"
-          disabled={pending || !idea.trim() || (role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)))}
+          disabled={showLoading || !idea.trim() || (role === 'free' && (dailyLeft === 0 || (ideasLeft !== null && ideasLeft === 0)))}
           className={cn(
             "w-full rounded-xl h-12 sm:h-14 text-base sm:text-lg font-semibold",
             "transition-all duration-200 shadow-lg hover:shadow-xl",
@@ -433,7 +441,7 @@ export default function IdeaHero() {
             "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
           )}
         >
-          {pending ? (
+          {showLoading ? (
             <div className="flex items-center gap-2">
               <LoaderCircle className="animate-spin w-5 h-5" />
               <span>{t('generating')}</span>
@@ -502,7 +510,7 @@ export default function IdeaHero() {
       </div>
   
       {/* 로딩 오버레이 - 단계별 애니메이션 추가 */}
-{pending && (
+{showLoading && (
   <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md px-4">
     <div className="absolute inset-0 z-0 opacity-5 bg-gradient-to-br from-blue-50 to-purple-50"></div>
 
