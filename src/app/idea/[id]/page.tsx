@@ -4,18 +4,15 @@ import { useEffect, useState, use } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  // 서버 액션 (AI 생성만)
   generateAISuggestions,
   type GeneratedIdea
 } from '@/app/actions';
 
 import {
-  // 클라이언트 함수 (Firestore 저장)
   saveAISuggestions,
 } from '@/lib/firebase-client';
 
 import {
-  // 클라이언트 함수 (Firestore CRUD)
   getIdeaById,
   getUserData,
   toggleFavorite,
@@ -39,14 +36,10 @@ import {
   Download, 
   FileText,
   Wand2,
-  AlertTriangle,
   CheckCircle2,
   TrendingUp,
-  ThumbsUp,
-  ThumbsDown,
   RotateCcw,
   Sparkles,
-  Lock,
   Crown,
   Zap
 } from 'lucide-react';
@@ -67,6 +60,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
 import { useAuth } from '@/context/auth-context';
 
 export default function IdeaDetailPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
@@ -77,8 +76,8 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
   const [isEditing, setIsEditing] = useState({ title: false, summary: false });
   const [editValues, setEditValues] = useState({ title: '', summary: '' });
   const [showMindMapPreview, setShowMindMapPreview] = useState(false);
+  const [activeTab, setActiveTab] = useState<'outline' | 'mindmap' | 'ai' | 'business'>('outline');
   
-  // AI 제안 관련 상태
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [userRole, setUserRole] = useState<'free' | 'paid'>('free');
@@ -123,7 +122,7 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
     try {
       if (!window.confirm('이 아이디어의 공유 링크를 생성하시겠습니까?')) return;
 
-      const { data: shareLink, error } = await createShareLink(idea.id, 7); // 7일 유효
+      const { data: shareLink, error } = await createShareLink(idea.id, 7);
       if (error || !shareLink) {
         throw new Error(error || '공유 링크 생성 실패');
       }
@@ -433,133 +432,259 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{t('mindMap')}</CardTitle>
-          <div className="flex gap-2">
-            {idea.mindMap && (
-              <Button 
-                variant="ghost" 
-                onClick={() => setShowMindMapPreview(true)}
-              >
-                <LocateFixed className="mr-2 h-4 w-4" />
-                Preview
-              </Button>
+      {/* 탭 UI */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="outline">
+            <FileText className="h-4 w-4 mr-2" />
+            {t('outline')}
+          </TabsTrigger>
+          <TabsTrigger value="mindmap">
+            <LocateFixed className="h-4 w-4 mr-2" />
+            {t('mindMap')}
+          </TabsTrigger>
+          <TabsTrigger value="ai" className="relative">
+            <Wand2 className="h-4 w-4 mr-2" />
+            AI 분석
+            {userRole === 'free' && (
+              <Crown className="h-3 w-3 ml-1 text-purple-600" />
             )}
-            <Button asChild variant="outline">
-              <Link href={`/idea/${idea.id}/mindmap`}>
-                <LocateFixed className="mr-2 h-4 w-4" />
-                View Full Mind Map
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {idea.mindMap ? (
-            <div className="space-y-4">
-              <p className="text-muted-foreground">
-                A mind map visualization is available for this idea. Preview it below or view the full interactive version.
-              </p>
-              <div className="border rounded-lg p-4 bg-gray-50 max-h-48 overflow-hidden">
-                <MindMapPreview mindMap={idea.mindMap} />
-              </div>
-            </div>
-          ) : (
-            <p className="text-muted-foreground">
-              No mind map available for this idea yet.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+          </TabsTrigger>
+          <TabsTrigger value="business" className="relative">
+            <FileText className="h-4 w-4 mr-2" />
+            사업계획서
+            {userRole === 'free' && (
+              <Crown className="h-3 w-3 ml-1 text-purple-600" />
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('outline')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <OutlineDisplay outline={idea.outline} />
-        </CardContent>
-      </Card>
-
-      {/* AI 개선 제안 섹션 */}
-      {userRole === 'paid' ? (
-        !aiAnalysis ? (
+        {/* 개요 탭 */}
+        <TabsContent value="outline" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wand2 className="h-5 w-5" />
-                AI 전문 분석
-              </CardTitle>
+              <CardTitle>{t('outline')}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-muted-foreground">
-                AI가 당신의 아이디어를 전문적으로 분석하여 SWOT 분석, 시장 잠재력, 
-                그리고 구체적인 개선 제안을 제공합니다.
-              </p>
-
-              <div className="grid gap-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                  <span>강점, 약점, 기회, 위협 분석 (SWOT)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                  <span>시장 잠재력 및 실현 가능성 평가</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                  <span>5가지 구체적인 개선 제안</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                  <span>단계별 실행 방안</span>
-                </div>
-              </div>
-
-              <Button 
-                onClick={handleGenerateAISuggestions} 
-                disabled={isAnalyzing}
-                className="w-full"
-                size="lg"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4 animate-spin" />
-                    AI가 분석 중...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    AI 분석 시작하기
-                  </>
-                )}
-              </Button>
+            <CardContent>
+              <OutlineDisplay outline={idea.outline} />
             </CardContent>
           </Card>
-        ) : (
-          <div className="space-y-6">
-            <Card>
+        </TabsContent>
+
+        {/* 마인드맵 탭 */}
+        <TabsContent value="mindmap" className="mt-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>{t('mindMap')}</CardTitle>
+              <div className="flex gap-2">
+                {idea.mindMap && (
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => setShowMindMapPreview(true)}
+                  >
+                    <LocateFixed className="mr-2 h-4 w-4" />
+                    Preview
+                  </Button>
+                )}
+                <Button asChild variant="outline">
+                  <Link href={`/idea/${idea.id}/mindmap`}>
+                    <LocateFixed className="mr-2 h-4 w-4" />
+                    View Full Mind Map
+                  </Link>
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {idea.mindMap ? (
+                <div className="space-y-4">
+                  <p className="text-muted-foreground">
+                    A mind map visualization is available for this idea. Preview it below or view the full interactive version.
+                  </p>
+                  <div className="border rounded-lg p-4 bg-gray-50 max-h-[60vh] overflow-y-auto">
+                    <MindMapPreview mindMap={idea.mindMap} />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted-foreground">
+                  No mind map available for this idea yet.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* AI 분석 탭 */}
+        <TabsContent value="ai" className="mt-6">
+          {userRole === 'paid' ? (
+            !aiAnalysis ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wand2 className="h-5 w-5" />
+                    AI 전문 분석
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground">
+                    AI가 당신의 아이디어를 전문적으로 분석하여 SWOT 분석, 시장 잠재력, 
+                    그리고 구체적인 개선 제안을 제공합니다.
+                  </p>
+
+                  <div className="grid gap-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                      <span>강점, 약점, 기회, 위협 분석 (SWOT)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                      <span>시장 잠재력 및 실현 가능성 평가</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                      <span>5가지 구체적인 개선 제안</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                      <span>단계별 실행 방안</span>
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={handleGenerateAISuggestions} 
+                    disabled={isAnalyzing}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4 animate-spin" />
+                        AI가 분석 중...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        AI 분석 시작하기
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Wand2 className="h-5 w-5" />
+                        AI 분석 결과
+                      </CardTitle>
+                      <Button onClick={handleGenerateAISuggestions} variant="outline" size="sm" disabled={isAnalyzing}>
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        다시 분석
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-6 mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <TrendingUp className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">시장 잠재력</p>
+                          <p className="text-2xl font-bold text-blue-600">{aiAnalysis.marketPotential}/10</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                          <CheckCircle2 className="h-6 w-6 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">실현 가능성</p>
+                          <p className="text-2xl font-bold text-green-600">{aiAnalysis.feasibilityScore}/10</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="border border-green-200 rounded p-3 bg-green-50">
+                        <h4 className="font-semibold text-green-900 text-sm mb-2">강점</h4>
+                        <ul className="space-y-1">
+                          {aiAnalysis.strengths?.slice(0, 2).map((s: string, i: number) => (
+                            <li key={i} className="text-xs text-green-800">• {s}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="border border-red-200 rounded p-3 bg-red-50">
+                        <h4 className="font-semibold text-red-900 text-sm mb-2">약점</h4>
+                        <ul className="space-y-1">
+                          {aiAnalysis.weaknesses?.slice(0, 2).map((w: string, i: number) => (
+                            <li key={i} className="text-xs text-red-800">• {w}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {aiAnalysis.suggestions?.map((suggestion: any, index: number) => (
+                  <Card key={suggestion.id}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-sm text-muted-foreground mb-1">제안 #{index + 1}</div>
+                          <h3 className="font-semibold">{suggestion.title}</h3>
+                        </div>
+                        <Badge variant={suggestion.priority === 'high' ? 'destructive' : 'secondary'}>
+                          {suggestion.priority}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <p className="text-sm">{suggestion.description}</p>
+                      <div className="bg-blue-50 p-3 rounded text-sm">
+                        <strong>AI 분석:</strong> {suggestion.reasoning}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">실행 방안:</h4>
+                        <ul className="space-y-1">
+                          {suggestion.actionItems?.map((item: string, i: number) => (
+                            <li key={i} className="text-sm flex gap-2">
+                              <span className="text-blue-600">{i + 1}.</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )
+          ) : (
+            <Card className="relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-white z-10 pointer-events-none" />
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Wand2 className="h-5 w-5" />
-                    AI 분석 결과
+                    AI 전문 분석 (미리보기)
                   </CardTitle>
-                  <Button onClick={handleGenerateAISuggestions} variant="outline" size="sm" disabled={isAnalyzing}>
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    다시 분석
-                  </Button>
+                  <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+                    <Crown className="h-3 w-3 mr-1" />
+                    PRO
+                  </Badge>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-6 mb-6">
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-2 gap-4 opacity-60">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                       <TrendingUp className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">시장 잠재력</p>
-                      <p className="text-2xl font-bold text-blue-600">{aiAnalysis.marketPotential}/10</p>
+                      <p className="text-2xl font-bold text-blue-600">?/10</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -568,277 +693,186 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">실현 가능성</p>
-                      <p className="text-2xl font-bold text-green-600">{aiAnalysis.feasibilityScore}/10</p>
+                      <p className="text-2xl font-bold text-green-600">?/10</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="border border-green-200 rounded p-3 bg-green-50">
-                    <h4 className="font-semibold text-green-900 text-sm mb-2">강점</h4>
-                    <ul className="space-y-1">
-                      {aiAnalysis.strengths?.slice(0, 2).map((s: string, i: number) => (
-                        <li key={i} className="text-xs text-green-800">• {s}</li>
-                      ))}
+                <div className="space-y-4 opacity-40 blur-sm">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="border rounded-lg p-3">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-100 rounded w-full"></div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="relative z-20 text-center space-y-4 pt-4">
+                  <div className="bg-white border-2 border-purple-200 rounded-lg p-6 space-y-4">
+                    <div className="flex items-center justify-center gap-2">
+                      <Crown className="h-6 w-6 text-purple-600" />
+                      <h3 className="text-xl font-bold">Pro 플랜 혜택</h3>
+                    </div>
+                    
+                    <ul className="space-y-2 text-sm text-left max-w-md mx-auto">
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <span>전문가 수준의 SWOT 분석</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <span>5개의 구체적인 개선 제안</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <span>단계별 실행 방안</span>
+                      </li>
                     </ul>
-                  </div>
-                  <div className="border border-red-200 rounded p-3 bg-red-50">
-                    <h4 className="font-semibold text-red-900 text-sm mb-2">약점</h4>
-                    <ul className="space-y-1">
-                      {aiAnalysis.weaknesses?.slice(0, 2).map((w: string, i: number) => (
-                        <li key={i} className="text-xs text-red-800">• {w}</li>
-                      ))}
-                    </ul>
+
+                    <Button 
+                      onClick={() => router.push('/upgrade')}
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                      size="lg"
+                    >
+                      <Zap className="mr-2 h-4 w-4" />
+                      Pro로 업그레이드
+                    </Button>
                   </div>
                 </div>
               </CardContent>
             </Card>
+          )}
+        </TabsContent>
 
-            {aiAnalysis.suggestions?.map((suggestion: any, index: number) => (
-              <Card key={suggestion.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-1">제안 #{index + 1}</div>
-                      <h3 className="font-semibold">{suggestion.title}</h3>
-                    </div>
-                    <Badge variant={suggestion.priority === 'high' ? 'destructive' : 'secondary'}>
-                      {suggestion.priority}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm">{suggestion.description}</p>
-                  <div className="bg-blue-50 p-3 rounded text-sm">
-                    <strong>AI 분석:</strong> {suggestion.reasoning}
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">실행 방안:</h4>
-                    <ul className="space-y-1">
-                      {suggestion.actionItems?.map((item: string, i: number) => (
-                        <li key={i} className="text-sm flex gap-2">
-                          <span className="text-blue-600">{i + 1}.</span>
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )
-      ) : (
-        <Card className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-white z-10 pointer-events-none" />
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Wand2 className="h-5 w-5" />
-                AI 전문 분석 (미리보기)
-              </CardTitle>
-              <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-                <Crown className="h-3 w-3 mr-1" />
-                PRO
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 gap-4 opacity-60">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">시장 잠재력</p>
-                  <p className="text-2xl font-bold text-blue-600">?/10</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <CheckCircle2 className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">실현 가능성</p>
-                  <p className="text-2xl font-bold text-green-600">?/10</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4 opacity-40 blur-sm">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="border rounded-lg p-3">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-gray-100 rounded w-full"></div>
-                </div>
-              ))}
-            </div>
-
-            <div className="relative z-20 text-center space-y-4 pt-4">
-              <div className="bg-white border-2 border-purple-200 rounded-lg p-6 space-y-4">
-                <div className="flex items-center justify-center gap-2">
-                  <Crown className="h-6 w-6 text-purple-600" />
-                  <h3 className="text-xl font-bold">Pro 플랜 혜택</h3>
-                </div>
-                
-                <ul className="space-y-2 text-sm text-left max-w-md mx-auto">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span>전문가 수준의 SWOT 분석</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span>5개의 구체적인 개선 제안</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span>단계별 실행 방안</span>
-                  </li>
-                </ul>
-
-                <Button 
-                  onClick={() => router.push('/upgrade')}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                  size="lg"
-                >
-                  <Zap className="mr-2 h-4 w-4" />
-                  Pro로 업그레이드
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-{/* 사업계획서 섹션 */}
-{userRole === 'paid' && (
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2">
-        <FileText className="h-5 w-5" />
-        사업계획서
-      </CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      <p className="text-muted-foreground">
-        전문가 수준의 사업계획서를 AI가 자동으로 작성해드립니다. 
-        투자 유치와 사업 실행을 위한 완벽한 문서를 만들어보세요.
-      </p>
-
-      {idea.businessPlan ? (
-        <div className="space-y-4">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <h4 className="font-semibold text-green-900">사업계획서 생성 완료</h4>
-                <p className="text-sm text-green-800">
-                  {idea.businessPlanGeneratedAt && 
-                    `생성일: ${new Date(idea.businessPlanGeneratedAt).toLocaleDateString()}`
-                  }
+        {/* 사업계획서 탭 */}
+        <TabsContent value="business" className="mt-6">
+          {userRole === 'paid' ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  사업계획서
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground">
+                  전문가 수준의 사업계획서를 AI가 자동으로 작성해드립니다. 
+                  투자 유치와 사업 실행을 위한 완벽한 문서를 만들어보세요.
                 </p>
-              </div>
-            </div>
+
+                {idea.businessPlan ? (
+                  <div className="space-y-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-green-900">사업계획서 생성 완료</h4>
+                          <p className="text-sm text-green-800">
+                            {idea.businessPlanGeneratedAt && 
+                              `생성일: ${new Date(idea.businessPlanGeneratedAt).toLocaleDateString()}`
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="p-3 bg-gray-50 rounded">
+                        <p className="text-muted-foreground">타겟 시장</p>
+                        <p className="font-semibold">{idea.businessPlan.metadata.targetMarket}</p>
+                      </div>
+                      <div className="p-3 bg-gray-50 rounded">
+                        <p className="text-muted-foreground">필요 자금</p>
+                        <p className="font-semibold">{idea.businessPlan.metadata.fundingNeeded}</p>
+                      </div>
+                    </div>
+
+                    <Button asChild className="w-full">
+                      <Link href={`/idea/${idea.id}/business-plan`}>
+                        <FileText className="mr-2 h-4 w-4" />
+                        사업계획서 보기
+                      </Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                        <span>10개 핵심 섹션 (경영진 요약, 시장 분석, 재무 계획 등)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                        <span>3년 재무 전망 및 투자 계획</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                        <span>18개월 실행 로드맵</span>
+                      </div>
+                    </div>
+
+                    <Button asChild className="w-full" variant="default">
+                      <Link href={`/idea/${idea.id}/business-plan`}>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        사업계획서 생성하기
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-white z-10 pointer-events-none" />
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    사업계획서
+                  </CardTitle>
+                  <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+                    <Crown className="h-3 w-3 mr-1" />
+                    PRO
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground opacity-60">
+                  전문가 수준의 사업계획서를 AI가 작성해드립니다.
+                </p>
+
+                <div className="space-y-2 opacity-40 blur-sm">
+                  <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                </div>
+
+                <div className="relative z-20 text-center pt-4">
+                  <Button 
+                    onClick={() => router.push('/upgrade')}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600"
+                  >
+                    <Crown className="mr-2 h-4 w-4" />
+                    Pro로 업그레이드
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* 마인드맵 미리보기 다이얼로그 */}
+      <Dialog open={showMindMapPreview} onOpenChange={setShowMindMapPreview}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Mind Map Preview</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-96">
+            <MindMapPreview mindMap={idea.mindMap} />
           </div>
-
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="p-3 bg-gray-50 rounded">
-              <p className="text-muted-foreground">타겟 시장</p>
-              <p className="font-semibold">{idea.businessPlan.metadata.targetMarket}</p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded">
-              <p className="text-muted-foreground">필요 자금</p>
-              <p className="font-semibold">{idea.businessPlan.metadata.fundingNeeded}</p>
-            </div>
-          </div>
-
-          <Button asChild className="w-full">
-            <Link href={`/idea/${idea.id}/business-plan`}>
-              <FileText className="mr-2 h-4 w-4" />
-              사업계획서 보기
-            </Link>
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="grid gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-blue-600" />
-              <span>10개 핵심 섹션 (경영진 요약, 시장 분석, 재무 계획 등)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-blue-600" />
-              <span>3년 재무 전망 및 투자 계획</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-blue-600" />
-              <span>18개월 실행 로드맵</span>
-            </div>
-          </div>
-
-          <Button asChild className="w-full" variant="default">
-            <Link href={`/idea/${idea.id}/business-plan`}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              사업계획서 생성하기
-            </Link>
-          </Button>
-        </div>
-      )}
-    </CardContent>
-  </Card>
-)}
-
-{/* Free 사용자용 사업계획서 미리보기 */}
-{userRole === 'free' && (
-  <Card className="relative overflow-hidden">
-    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-white z-10 pointer-events-none" />
-    <CardHeader>
-      <div className="flex items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          사업계획서
-        </CardTitle>
-        <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-          <Crown className="h-3 w-3 mr-1" />
-          PRO
-        </Badge>
-      </div>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      <p className="text-muted-foreground opacity-60">
-        전문가 수준의 사업계획서를 AI가 작성해드립니다.
-      </p>
-
-      <div className="space-y-2 opacity-40 blur-sm">
-        <div className="h-4 bg-gray-200 rounded w-full"></div>
-        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-        <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-      </div>
-
-      <div className="relative z-20 text-center pt-4">
-        <Button 
-          onClick={() => router.push('/upgrade')}
-          className="bg-gradient-to-r from-purple-600 to-blue-600"
-        >
-          <Crown className="mr-2 h-4 w-4" />
-          Pro로 업그레이드
-        </Button>
-      </div>
-    </CardContent>
-  </Card>
-)}
-
-{/* 마인드맵 미리보기 다이얼로그 */}
-<Dialog open={showMindMapPreview} onOpenChange={setShowMindMapPreview}>
-  <DialogContent className="max-w-3xl max-h-[80vh]">
-    <DialogHeader>
-      <DialogTitle>Mind Map Preview</DialogTitle>
-    </DialogHeader>
-    <div className="overflow-y-auto max-h-96">
-      <MindMapPreview mindMap={idea.mindMap} />
+        </DialogContent>
+      </Dialog>
     </div>
-  </DialogContent>
-</Dialog>
-</div>
-);
+  );
 }
