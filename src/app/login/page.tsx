@@ -74,12 +74,34 @@ function LoginPageInner() {
     e.preventDefault();
     try {
       await signInWithEmail(email, password);
+      
+      // 이메일 인증 확인
+      if (auth.currentUser && !auth.currentUser.emailVerified) {
+        toast({
+          variant: 'destructive',
+          title: '이메일 인증 필요',
+          description: '이메일 인증을 완료한 후 로그인해주세요.',
+        });
+        await auth.signOut();
+        return;
+      }
+      
       router.replace(next);
     } catch (error: any) {
+      let errorMessage = '이메일 또는 비밀번호를 확인해주세요.';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = '등록되지 않은 이메일입니다.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = '비밀번호가 올바르지 않습니다.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = '너무 많은 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+      }
+      
       toast({
         variant: 'destructive',
         title: '로그인 실패',
-        description: error.message || '이메일 또는 비밀번호를 확인해주세요.',
+        description: errorMessage,
       });
     }
   };
