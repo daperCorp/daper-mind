@@ -8,7 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Eye, AlertCircle, Share2, ChevronRight, ChevronDown, Sparkles, FileText, TrendingUp } from 'lucide-react';
 import { OutlineDisplay } from '@/components/outline-display';
-
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
 // 상단에 유틸 추가
 const isNonEmpty = (v: any) => {
   if (typeof v === 'string') return v.trim().length > 0;
@@ -257,6 +262,7 @@ export default function SharedIdeaPage({
       </div>
 
       {/* 요약 */}
+      {/* 요약 */}
       <Card>
         <CardHeader>
           <CardTitle>요약</CardTitle>
@@ -268,71 +274,113 @@ export default function SharedIdeaPage({
         </CardContent>
       </Card>
 
-      {/* 아웃라인 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>상세 계획</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <OutlineDisplay outline={String(idea.outline || '상세 계획 없음')} />
-        </CardContent>
-      </Card>
+      {/* 탭 UI */}
+      <Tabs defaultValue="outline" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-1">
+          <TabsTrigger value="outline" className="text-xs sm:text-sm">
+            <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            상세 계획
+          </TabsTrigger>
+          
+          {idea.mindMap && (
+            <TabsTrigger value="mindmap" className="text-xs sm:text-sm">
+              <Share2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              마인드맵
+            </TabsTrigger>
+          )}
+          
+          {hasAiAnalysis && (
+            <TabsTrigger value="ai" className="text-xs sm:text-sm">
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">AI 분석</span>
+              <span className="sm:hidden">AI</span>
+              <Sparkles className="h-2 w-2 sm:h-3 sm:w-3 ml-1 text-purple-600" />
+            </TabsTrigger>
+          )}
+          
+          {hasBusinessPlan && (
+            <TabsTrigger value="business" className="text-xs sm:text-sm">
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">사업계획서</span>
+              <span className="sm:hidden">계획서</span>
+              <Sparkles className="h-2 w-2 sm:h-3 sm:w-3 ml-1 text-indigo-600" />
+            </TabsTrigger>
+          )}
+        </TabsList>
 
-      {/* AI 전문 분석 (프리미엄) */}
-      {hasAiAnalysis && (
-        <Card className="border-purple-200 bg-gradient-to-br from-purple-50/50 to-indigo-50/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-purple-600" />
-              <span>AI 전문 분석</span>
-              <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs">
-                <Sparkles className="h-3 w-3 mr-1" />
-                프리미엄
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <OutlineDisplay outline={idea.aiAnalysis} />
-          </CardContent>
-        </Card>
-      )}
+        {/* 상세 계획 탭 */}
+        <TabsContent value="outline" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>상세 계획</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <OutlineDisplay outline={String(idea.outline || '상세 계획 없음')} />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* 사업계획서 (프리미엄) */}
-      {hasBusinessPlan && (
-  <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-blue-50/50">
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2">
-        <FileText className="h-5 w-5 text-indigo-600" />
-        <span>사업계획서</span>
-        <Badge className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-xs">
-          <Sparkles className="h-3 w-3 mr-1" />
-          프리미엄
-        </Badge>
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      <OutlineDisplay outline={businessPlanToMarkdown(idea.businessPlan)} />
-    </CardContent>
-  </Card>
-)}
+        {/* 마인드맵 탭 */}
+        {idea.mindMap && (
+          <TabsContent value="mindmap" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span>마인드맵</span>
+                  <Badge variant="outline" className="text-xs">
+                    인터랙티브
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MindMapRenderer data={idea.mindMap} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
+        {/* AI 전문 분석 탭 */}
+        {hasAiAnalysis && (
+          <TabsContent value="ai" className="mt-6">
+            <Card className="border-purple-200 bg-gradient-to-br from-purple-50/50 to-indigo-50/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 flex-wrap">
+                  <TrendingUp className="h-5 w-5 text-purple-600" />
+                  <span>AI 전문 분석</span>
+                  <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    프리미엄
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <OutlineDisplay outline={idea.aiAnalysis} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
-      {/* 마인드맵 */}
-      {idea.mindMap && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <span>마인드맵</span>
-              <Badge variant="outline" className="text-xs">
-                인터랙티브
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MindMapRenderer data={idea.mindMap} />
-          </CardContent>
-        </Card>
-      )}
+        {/* 사업계획서 탭 */}
+        {hasBusinessPlan && (
+          <TabsContent value="business" className="mt-6">
+            <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-blue-50/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 flex-wrap">
+                  <FileText className="h-5 w-5 text-indigo-600" />
+                  <span>사업계획서</span>
+                  <Badge className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-xs">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    프리미엄
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <OutlineDisplay outline={businessPlanToMarkdown(idea.businessPlan)} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
 
       {/* 읽기 전용 안내 */}
       <Card className="border-blue-200 bg-blue-50">

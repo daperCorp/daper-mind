@@ -121,15 +121,38 @@ export default function IdeaDetailPage({ params: paramsPromise }: { params: Prom
     if (!idea?.id) return;
     try {
       if (!window.confirm('이 아이디어의 공유 링크를 생성하시겠습니까?')) return;
-
+  
       const { data: shareLink, error } = await createShareLink(idea.id, 7);
       if (error || !shareLink) {
         throw new Error(error || '공유 링크 생성 실패');
       }
-
+  
       const shareUrl = `${window.location.origin}/share/${shareLink.id}`;
+  
+      // 모바일 네이티브 공유 지원 (Web Share API)
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: idea.title,
+            text: `${idea.title} - 아이디어를 확인해보세요`,
+            url: shareUrl,
+          });
+          
+          toast({
+            title: '공유 완료',
+            description: '아이디어가 성공적으로 공유되었습니다.',
+          });
+          return;
+        } catch (err: any) {
+          // 사용자가 공유를 취소한 경우 (AbortError는 무시)
+          if (err.name === 'AbortError') return;
+          // 다른 에러는 폴백으로 처리
+        }
+      }
+  
+      // 폴백: 클립보드 복사
       await navigator.clipboard.writeText(shareUrl);
-
+  
       toast({
         title: '공유 링크 생성 완료',
         description: '링크가 클립보드에 복사되었습니다. 이 링크는 읽기 전용입니다.',
