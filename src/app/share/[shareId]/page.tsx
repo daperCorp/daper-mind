@@ -221,7 +221,7 @@ export default function SharedIdeaPage({
   // const hasAiAnalysis = idea.aiAnalysis && idea.aiAnalysis.trim();
   // const hasBusinessPlan = idea.businessPlan && idea.businessPlan.trim();
   // const hasPremiumContent = hasAiAnalysis || hasBusinessPlan;
-  const hasAiAnalysis = isNonEmpty(idea.aiAnalysis);
+  const hasAiAnalysis = isNonEmpty(idea.aiSuggestions);
   const hasBusinessPlan = isNonEmpty(idea.businessPlan);
   const hasPremiumContent = hasAiAnalysis || hasBusinessPlan;
   return (
