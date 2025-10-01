@@ -14,6 +14,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+
 // 상단에 유틸 추가
 const isNonEmpty = (v: any) => {
   if (typeof v === 'string') return v.trim().length > 0;
@@ -218,31 +219,31 @@ export default function SharedIdeaPage({
   }
 
   // 프리미엄 콘텐츠 확인
-  // const hasAiAnalysis = idea.aiAnalysis && idea.aiAnalysis.trim();
-  // const hasBusinessPlan = idea.businessPlan && idea.businessPlan.trim();
-  // const hasPremiumContent = hasAiAnalysis || hasBusinessPlan;
   const hasAiAnalysis = isNonEmpty(idea.aiSuggestions);
   const hasBusinessPlan = isNonEmpty(idea.businessPlan);
   const hasPremiumContent = hasAiAnalysis || hasBusinessPlan;
+
   return (
     <div className="mx-auto max-w-4xl space-y-8 p-4 md:p-6">
       {/* 읽기 전용 배너 */}
-      <div className="flex items-center gap-3 p-4 rounded-lg border-2 bg-blue-50 border-blue-200">
-        <div className="flex-shrink-0">
-          <Eye className="h-5 w-5 text-blue-600" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 sm:p-4 rounded-lg border-2 bg-blue-50 border-blue-200">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="flex-shrink-0">
+            <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-sm sm:text-base">공유된 아이디어</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              읽기 전용으로 공유됨
+            </p>
+          </div>
         </div>
-        <div className="flex-1">
-          <h3 className="font-semibold">공유된 아이디어</h3>
-          <p className="text-sm text-muted-foreground">
-            이 아이디어는 읽기 전용으로 공유되었습니다.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+        <div className="flex gap-2 flex-shrink-0 self-end sm:self-auto">
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
             읽기 전용
           </Badge>
           {hasPremiumContent && (
-            <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white">
+            <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs">
               <Sparkles className="h-3 w-3 mr-1" />
               프리미엄
             </Badge>
@@ -251,17 +252,16 @@ export default function SharedIdeaPage({
       </div>
 
       {/* 제목 */}
-      <div>
-        <h1 className="text-3xl font-bold text-primary">
+      <div className="space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-primary break-words">
           {String(idea.title || '제목 없음')}
         </h1>
-        <p className="text-muted-foreground mt-2 flex items-center gap-2">
-          <Share2 className="h-4 w-4" />
+        <p className="text-sm text-muted-foreground flex items-center gap-2">
+          <Share2 className="h-3 w-3 sm:h-4 sm:w-4" />
           공유된 아이디어
         </p>
       </div>
 
-      {/* 요약 */}
       {/* 요약 */}
       <Card>
         <CardHeader>
@@ -276,34 +276,35 @@ export default function SharedIdeaPage({
 
       {/* 탭 UI */}
       <Tabs defaultValue="outline" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-1">
-          <TabsTrigger value="outline" className="text-xs sm:text-sm">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-0.5 sm:gap-1 h-auto">
+          <TabsTrigger value="outline" className="text-xs sm:text-sm px-2 py-2 sm:py-2.5">
             <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            상세 계획
+            <span className="hidden xs:inline">상세 계획</span>
+            <span className="xs:hidden">계획</span>
           </TabsTrigger>
           
           {idea.mindMap && (
-            <TabsTrigger value="mindmap" className="text-xs sm:text-sm">
+            <TabsTrigger value="mindmap" className="text-xs sm:text-sm px-2 py-2 sm:py-2.5">
               <Share2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              마인드맵
+              <span className="hidden xs:inline">마인드맵</span>
+              <span className="xs:hidden">맵</span>
             </TabsTrigger>
           )}
           
           {hasAiAnalysis && (
-            <TabsTrigger value="ai" className="text-xs sm:text-sm">
-              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">AI 분석</span>
-              <span className="sm:hidden">AI</span>
-              <Sparkles className="h-2 w-2 sm:h-3 sm:w-3 ml-1 text-purple-600" />
+            <TabsTrigger value="ai" className="text-xs sm:text-sm px-2 py-2 sm:py-2.5">
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              <span>AI</span>
+              <Sparkles className="h-2 w-2 sm:h-3 sm:w-3 ml-0.5 sm:ml-1 text-purple-600" />
             </TabsTrigger>
           )}
           
           {hasBusinessPlan && (
-            <TabsTrigger value="business" className="text-xs sm:text-sm">
-              <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">사업계획서</span>
-              <span className="sm:hidden">계획서</span>
-              <Sparkles className="h-2 w-2 sm:h-3 sm:w-3 ml-1 text-indigo-600" />
+            <TabsTrigger value="business" className="text-xs sm:text-sm px-2 py-2 sm:py-2.5">
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              <span className="hidden xs:inline">사업</span>
+              <span className="xs:hidden">사업</span>
+              <Sparkles className="h-2 w-2 sm:h-3 sm:w-3 ml-0.5 sm:ml-1 text-indigo-600" />
             </TabsTrigger>
           )}
         </TabsList>
@@ -354,7 +355,7 @@ export default function SharedIdeaPage({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <OutlineDisplay outline={idea.aiAnalysis} />
+                <OutlineDisplay outline={JSON.stringify(idea.aiSuggestions, null, 2)} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -384,17 +385,17 @@ export default function SharedIdeaPage({
 
       {/* 읽기 전용 안내 */}
       <Card className="border-blue-200 bg-blue-50">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="font-semibold text-blue-900">읽기 전용 링크</h3>
-              <p className="text-sm text-blue-800">
-                이 아이디어는 보기만 가능합니다. 원본 아이디어를 수정하려면 소유자 계정으로 로그인하세요.
+        <CardContent className="pt-4 sm:pt-6">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-blue-900 text-sm sm:text-base">읽기 전용 링크</h3>
+              <p className="text-xs sm:text-sm text-blue-800 mt-1">
+                보기만 가능합니다. 수정하려면 소유자 계정으로 로그인하세요.
               </p>
               {hasPremiumContent && (
-                <p className="text-sm text-purple-700 mt-2 font-medium">
-                  ✨ 이 아이디어에는 프리미엄 콘텐츠가 포함되어 있습니다.
+                <p className="text-xs sm:text-sm text-purple-700 mt-2 font-medium">
+                  ✨ 프리미엄 콘텐츠 포함
                 </p>
               )}
             </div>
